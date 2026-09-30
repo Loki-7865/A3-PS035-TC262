@@ -1,0 +1,91 @@
+name: ps035
+
+topology:
+  nodes:
+
+    r1:
+      kind: linux
+      image: quay.io/frrouting/frr:containerlab-10.7.1
+      privileged: true
+      binds:
+        - configs/daemons:/etc/frr/daemons
+        - configs/vtysh.conf:/etc/frr/vtysh.conf
+        - configs/r1/frr.conf:/etc/frr/frr.conf:ro
+      exec:
+        - ip addr add 10.0.12.1/30 dev eth1
+        - ip addr add 10.0.13.1/30 dev eth2
+        - ip addr add 192.168.1.1/32 dev lo
+
+    r2:
+      kind: linux
+      image: quay.io/frrouting/frr:containerlab-10.7.1
+      privileged: true
+      binds:
+        - configs/daemons:/etc/frr/daemons
+        - configs/vtysh.conf:/etc/frr/vtysh.conf
+        - configs/r2/frr.conf:/etc/frr/frr.conf:ro
+      exec:
+        - ip addr add 10.0.12.2/30 dev eth1
+        - ip addr add 10.0.24.1/30 dev eth2
+        - ip addr add 192.168.2.1/32 dev lo
+
+    r3:
+      kind: linux
+      image: quay.io/frrouting/frr:containerlab-10.7.1
+      privileged: true
+      binds:
+        - configs/daemons:/etc/frr/daemons
+        - configs/vtysh.conf:/etc/frr/vtysh.conf
+        - configs/r3/frr.conf:/etc/frr/frr.conf:ro
+      exec:
+        - ip addr add 10.0.13.2/30 dev eth1
+        - ip addr add 10.0.34.1/30 dev eth2
+        - ip addr add 192.168.3.1/32 dev lo
+
+    r4:
+      kind: linux
+      image: quay.io/frrouting/frr:containerlab-10.7.1
+      privileged: true
+      binds:
+        - configs/daemons:/etc/frr/daemons
+        - configs/vtysh.conf:/etc/frr/vtysh.conf
+        - configs/r4/frr.conf:/etc/frr/frr.conf:ro
+      exec:
+        - ip addr add 10.0.24.2/30 dev eth1
+        - ip addr add 10.0.34.2/30 dev eth2
+        - ip addr add 10.0.45.1/30 dev eth3
+        - ip addr add 192.168.4.1/32 dev lo
+
+    r5:
+      kind: linux
+      image: quay.io/frrouting/frr:containerlab-10.7.1
+      privileged: true
+      binds:
+        - configs/daemons:/etc/frr/daemons
+        - configs/vtysh.conf:/etc/frr/vtysh.conf
+        - configs/r5/frr.conf:/etc/frr/frr.conf:ro
+      exec:
+        - ip addr add 10.0.45.2/30 dev eth1
+        - ip addr add 192.168.5.1/32 dev lo
+
+  links:
+
+    - endpoints:
+        - "r1:eth1"
+        - "r2:eth1"
+
+    - endpoints:
+        - "r1:eth2"
+        - "r3:eth1"
+
+    - endpoints:
+        - "r2:eth2"
+        - "r4:eth1"
+
+    - endpoints:
+        - "r3:eth2"
+        - "r4:eth2"
+
+    - endpoints:
+        - "r4:eth3"
+        - "r5:eth1"
