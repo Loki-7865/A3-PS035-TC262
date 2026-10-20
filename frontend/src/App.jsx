@@ -27,6 +27,7 @@ const LINKS = [
 function App() {
   const [telemetry, setTelemetry] = useState(null);
   const [diagnosis, setDiagnosis] = useState(null);
+  const [incidents, setIncidents] = useState([]);
   const [apiOnline, setApiOnline] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -74,6 +75,7 @@ function App() {
       setApiOnline(healthData.status === "ok");
       setTelemetry(telemetryData);
       setDiagnosis(diagnosisData);
+      setIncidents(diagnosisData.incidents ?? []);
       setLastRefresh(new Date());
 
       // Report partial collection failures instead of implying full health.
@@ -584,89 +586,107 @@ rootCauses.map((cause, index) => (
           </div>
         </section>
 
-        <section id="impact-analysis" className="section-block">
+        
+        <section id="incident-history" className="section-block">
           <div className="section-heading">
             <div>
-              <h3>Network impact analysis</h3>
-              <p>Topology-based assessment of suspected link failures</p>
+              <h3>Incident history</h3>
+              <p>Persistent record of detected and resolved network incidents</p>
             </div>
             <span className="pill">
-              {impactAnalysis?.analysis_type === "TOPOLOGY_BASED_ESTIMATE"
-                ? "Topology estimate"
-                : "Awaiting analysis"}
+              {incidents.filter((incident) => incident.status === "ACTIVE").length} active
             </span>
           </div>
 
-          <div className="impact-grid">
-            <div className="panel impact-overview">
-              <div className="impact-metric">
-                <span>CONNECTED COMPONENTS</span>
-                <strong>{connectedComponents.length}</strong>
-              </div>
-              <p>
-                {connectedComponents.length === 1
-                  ? "The configured topology remains connected under the assumed failures."
-                  : connectedComponents.length > 1
-                    ? "The assumed failures divide the topology into disconnected groups."
-                    : "Refresh telemetry to calculate network connectivity."}
-              </p>
+          <div className="panel incident-history-panel">
+            {incidents.length === 0 ? (
+              <EmptyState
+                icon={<Clock3 size={24} />}
+                title="No incident history"
+                message="Incidents will appear here when a complete telemetry refresh detects a suspected network fault."
+              />
+            ) : (
+              [...incidents]
+                .sort((a, b) => {
+                  if (a.status === "ACTIVE" && b.status !== "ACTIVE") return -1;
+                  if (b.status === "ACTIVE" && a.status !== "ACTIVE") return 1;
+                  return new Date(b.last_observed_at || b.first_detected_at) -
+                    new Date(a.last_observed_at || a.first_detected_at);
+                })
+                .map((incident) => (
+                  <div className="history-incident" key={incident.incident_id}>
+                    <div className="history-incident-header">
+                      <div className="history-incident-title">
+                        <strong>{incident.incident_id}</strong>
+                        <span>{incident.candidate_link}</span>
+                      </div>
 
-              <div className="component-list">
-                {connectedComponents.map((component, index) => (
-                  <div className="component-row" key={index}>
-                    <span>Group {index + 1}</span>
+                      <div className="history-incident-badges">
+                        <span
+                          className={`incident-status ${
+                            incident.status === "ACTIVE" ? "active" : "resolved"
+                          }`}
+                        >
+                          {incident.status}
+                        </span>
+                        <span
+                          className={`severity ${
+                            incident.severity?.toLowerCase()
+                          }`}
+                        >
+                          {incident.severity || "UNKNOWN"}
+                        </span>
+                      </div>
+                    </div>
+
                     <div className="incident-routers">
-                      {component.map((router) => (
+                      {(incident.affected_routers ?? []).map((router) => (
                         <span className="incident-router" key={router}>
                           <Router size={13} />
                           {router}
                         </span>
                       ))}
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
 
-            <div className="panel impact-links">
-              {affectedLinks.length === 0 ? (
-                <EmptyState
-                  icon={<CheckCircle2 size={24} />}
-                  title="No suspected links to assess"
-                  message="Impact details will appear when root-cause candidates are detected."
-                />
-              ) : (
-                affectedLinks.map((link) => (
-                  <div className="impact-link-row" key={link.link}>
-                    <div className="impact-link-heading">
+                    <div className="history-incident-times">
                       <div>
-                        <strong>{link.link}</strong>
-                        <span>{link.subnet}</span>
+                        <span>First detected</span>
+                        <strong>
+                          {incident.first_detected_at
+                            ? new Date(incident.first_detected_at).toLocaleString()
+                            : "—"}
+                        </strong>
                       </div>
-                      <span
-                        className={`impact-status ${
-                          link.alternate_path_exists ? "available" : "risk"
-                        }`}
-                      >
-                        {link.alternate_path_exists
-                          ? "Alternate path"
-                          : "Partition risk"}
-                      </span>
+                      <div>
+                        <span>Last observed</span>
+                        <strong>
+                          {incident.last_observed_at
+                            ? new Date(incident.last_observed_at).toLocaleString()
+                            : "—"}
+                        </strong>
+                      </div>
+                      {incident.resolved_at && (
+                        <div>
+                          <span>Resolved</span>
+                          <strong>
+                            {new Date(incident.resolved_at).toLocaleString()}
+                          </strong>
+                        </div>
+                      )}
                     </div>
-                    <p>{link.assessment}</p>
+
+                    {incident.evidence && (
+                      <p className="history-incident-evidence">
+                        {incident.evidence}
+                      </p>
+                    )}
                   </div>
                 ))
-              )}
-            </div>
+            )}
           </div>
-
-          {impactAnalysis?.limitations && (
-            <p className="disclaimer impact-disclaimer">
-              <AlertTriangle size={13} />
-              {impactAnalysis.limitations}
-            </p>
-          )}
         </section>
+
+
 
         <section className="section-block router-section">
           <div className="section-heading">
