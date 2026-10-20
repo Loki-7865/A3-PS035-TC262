@@ -1,0 +1,25 @@
+# Containerlab generated runtime state
+lab/clab-*/
+lab/*.clab.yml.annotations.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node
+node_modules/
+dist/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# OS/editor
+.DS_Store
+.vscode/
+
+# Logs
+*.log
