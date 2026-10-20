@@ -7,6 +7,7 @@ from flask import Flask, jsonify
 from app.collector.telemetry import collect_snapshot, save_snapshot
 from app.diagnosis.bgp_analyzer import analyze_bgp
 from app.diagnosis.root_cause import correlate_findings
+from app.diagnosis.impact_analysis import analyze_impact
 
 app = Flask(__name__)
 
@@ -37,6 +38,7 @@ def build_diagnosis(snapshot):
             findings.extend(analyze_bgp(router_data))
 
     correlated = correlate_findings(findings)
+    impact = analyze_impact(correlated)
 
     return {
         "snapshot_timestamp": snapshot.get("collected_at"),
@@ -44,6 +46,7 @@ def build_diagnosis(snapshot):
         "finding_count": len(findings),
         "findings": findings,
         "candidate_root_causes": correlated,
+        "impact_analysis": impact,
     }
 
 

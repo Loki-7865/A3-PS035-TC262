@@ -290,3 +290,125 @@
   line-height: 1.6;
   overflow-wrap: anywhere;
 }
+
+.impact-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 16px;
+}
+
+.impact-overview,
+.impact-links {
+  min-width: 0;
+}
+
+.impact-overview {
+  padding: 20px;
+}
+
+.impact-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.impact-metric span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.impact-metric strong {
+  font: 600 36px "Space Grotesk", sans-serif;
+}
+
+.impact-overview > p,
+.impact-link-row > p {
+  color: #9aa8bc;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.component-list {
+  margin-top: 18px;
+}
+
+.component-row {
+  padding-top: 13px;
+  border-top: 1px solid var(--border);
+}
+
+.component-row > span {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.impact-link-row {
+  padding: 17px;
+  border-bottom: 1px solid var(--border);
+}
+
+.impact-link-row:last-child {
+  border-bottom: 0;
+}
+
+.impact-link-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.impact-link-heading > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.impact-link-heading strong {
+  font-size: 13px;
+}
+
+.impact-link-heading > div > span {
+  color: var(--muted);
+  font: 10px monospace;
+}
+
+.impact-status {
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.impact-status.available {
+  color: var(--green);
+  background: #12362f;
+}
+
+.impact-status.risk {
+  color: var(--amber);
+  background: #3c3021;
+}
+
+.impact-disclaimer {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.impact-disclaimer svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+@media (max-width: 800px) {
+  .impact-grid {
+    grid-template-columns: 1fr;
+  }
+}

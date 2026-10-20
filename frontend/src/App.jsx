@@ -103,6 +103,9 @@ function App() {
   const routers = telemetry?.routers ?? [];
   const findings = diagnosis?.findings ?? [];
   const rootCauses = diagnosis?.candidate_root_causes ?? [];
+  const impactAnalysis = diagnosis?.impact_analysis;
+const affectedLinks = impactAnalysis?.affected_links ?? [];
+const connectedComponents = impactAnalysis?.connected_components ?? [];
 
   const routerName = (router) =>
     (router?.router ?? "unknown").toUpperCase();
@@ -579,6 +582,90 @@ rootCauses.map((cause, index) => (
               )}
             </div>
           </div>
+        </section>
+
+        <section id="impact-analysis" className="section-block">
+          <div className="section-heading">
+            <div>
+              <h3>Network impact analysis</h3>
+              <p>Topology-based assessment of suspected link failures</p>
+            </div>
+            <span className="pill">
+              {impactAnalysis?.analysis_type === "TOPOLOGY_BASED_ESTIMATE"
+                ? "Topology estimate"
+                : "Awaiting analysis"}
+            </span>
+          </div>
+
+          <div className="impact-grid">
+            <div className="panel impact-overview">
+              <div className="impact-metric">
+                <span>CONNECTED COMPONENTS</span>
+                <strong>{connectedComponents.length}</strong>
+              </div>
+              <p>
+                {connectedComponents.length === 1
+                  ? "The configured topology remains connected under the assumed failures."
+                  : connectedComponents.length > 1
+                    ? "The assumed failures divide the topology into disconnected groups."
+                    : "Refresh telemetry to calculate network connectivity."}
+              </p>
+
+              <div className="component-list">
+                {connectedComponents.map((component, index) => (
+                  <div className="component-row" key={index}>
+                    <span>Group {index + 1}</span>
+                    <div className="incident-routers">
+                      {component.map((router) => (
+                        <span className="incident-router" key={router}>
+                          <Router size={13} />
+                          {router}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="panel impact-links">
+              {affectedLinks.length === 0 ? (
+                <EmptyState
+                  icon={<CheckCircle2 size={24} />}
+                  title="No suspected links to assess"
+                  message="Impact details will appear when root-cause candidates are detected."
+                />
+              ) : (
+                affectedLinks.map((link) => (
+                  <div className="impact-link-row" key={link.link}>
+                    <div className="impact-link-heading">
+                      <div>
+                        <strong>{link.link}</strong>
+                        <span>{link.subnet}</span>
+                      </div>
+                      <span
+                        className={`impact-status ${
+                          link.alternate_path_exists ? "available" : "risk"
+                        }`}
+                      >
+                        {link.alternate_path_exists
+                          ? "Alternate path"
+                          : "Partition risk"}
+                      </span>
+                    </div>
+                    <p>{link.assessment}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {impactAnalysis?.limitations && (
+            <p className="disclaimer impact-disclaimer">
+              <AlertTriangle size={13} />
+              {impactAnalysis.limitations}
+            </p>
+          )}
         </section>
 
         <section className="section-block router-section">
