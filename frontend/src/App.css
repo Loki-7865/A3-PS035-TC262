@@ -290,3 +290,243 @@
   line-height: 1.6;
   overflow-wrap: anywhere;
 }
+
+.impact-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 16px;
+}
+
+.impact-overview,
+.impact-links {
+  min-width: 0;
+}
+
+.impact-overview {
+  padding: 20px;
+}
+
+.impact-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.impact-metric span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.impact-metric strong {
+  font: 600 36px "Space Grotesk", sans-serif;
+}
+
+.impact-overview > p,
+.impact-link-row > p {
+  color: #9aa8bc;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.component-list {
+  margin-top: 18px;
+}
+
+.component-row {
+  padding-top: 13px;
+  border-top: 1px solid var(--border);
+}
+
+.component-row > span {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.impact-link-row {
+  padding: 17px;
+  border-bottom: 1px solid var(--border);
+}
+
+.impact-link-row:last-child {
+  border-bottom: 0;
+}
+
+.impact-link-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.impact-link-heading > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.impact-link-heading strong {
+  font-size: 13px;
+}
+
+.impact-link-heading > div > span {
+  color: var(--muted);
+  font: 10px monospace;
+}
+
+.impact-status {
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.impact-status.available {
+  color: var(--green);
+  background: #12362f;
+}
+
+.impact-status.risk {
+  color: var(--amber);
+  background: #3c3021;
+}
+
+.impact-disclaimer {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.impact-disclaimer svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+@media (max-width: 800px) {
+  .impact-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Incident history panel */
+.incident-history-panel {
+  padding: 0 18px;
+}
+
+.history-incident {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+}
+
+.history-incident:last-child {
+  border-bottom: none;
+}
+
+.history-incident-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.history-incident-title {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.history-incident-title strong {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.history-incident-title > span {
+  color: var(--text-secondary, #a1a1aa);
+  font-size: 13px;
+}
+
+.history-incident-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.incident-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+}
+
+.incident-status.active {
+  color: #ff8585;
+  background: rgba(239, 68, 68, 0.13);
+  border: 1px solid rgba(239, 68, 68, 0.28);
+}
+
+.incident-status.resolved {
+  color: #6ee7a0;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+.history-incident-times {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.history-incident-times > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.history-incident-times span {
+  color: var(--text-secondary, #a1a1aa);
+  font-size: 11px;
+}
+
+.history-incident-times strong {
+  font-size: 12px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.history-incident-evidence {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-left: 2px solid rgba(245, 158, 11, 0.65);
+  background: rgba(245, 158, 11, 0.06);
+  border-radius: 0 6px 6px 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary, #c0c0c8);
+}
+
+@media (max-width: 600px) {
+  .incident-history-panel {
+    padding: 0 12px;
+  }
+
+  .history-incident-header {
+    flex-direction: column;
+  }
+
+  .history-incident-times {
+    grid-template-columns: 1fr;
+  }
+}

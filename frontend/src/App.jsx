@@ -27,6 +27,7 @@ const LINKS = [
 function App() {
   const [telemetry, setTelemetry] = useState(null);
   const [diagnosis, setDiagnosis] = useState(null);
+  const [incidents, setIncidents] = useState([]);
   const [apiOnline, setApiOnline] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -74,6 +75,7 @@ function App() {
       setApiOnline(healthData.status === "ok");
       setTelemetry(telemetryData);
       setDiagnosis(diagnosisData);
+      setIncidents(diagnosisData.incidents ?? []);
       setLastRefresh(new Date());
 
       // Report partial collection failures instead of implying full health.
@@ -103,6 +105,9 @@ function App() {
   const routers = telemetry?.routers ?? [];
   const findings = diagnosis?.findings ?? [];
   const rootCauses = diagnosis?.candidate_root_causes ?? [];
+  const impactAnalysis = diagnosis?.impact_analysis;
+const affectedLinks = impactAnalysis?.affected_links ?? [];
+const connectedComponents = impactAnalysis?.connected_components ?? [];
 
   const routerName = (router) =>
     (router?.router ?? "unknown").toUpperCase();
@@ -580,6 +585,108 @@ rootCauses.map((cause, index) => (
             </div>
           </div>
         </section>
+
+        
+        <section id="incident-history" className="section-block">
+          <div className="section-heading">
+            <div>
+              <h3>Incident history</h3>
+              <p>Persistent record of detected and resolved network incidents</p>
+            </div>
+            <span className="pill">
+              {incidents.filter((incident) => incident.status === "ACTIVE").length} active
+            </span>
+          </div>
+
+          <div className="panel incident-history-panel">
+            {incidents.length === 0 ? (
+              <EmptyState
+                icon={<Clock3 size={24} />}
+                title="No incident history"
+                message="Incidents will appear here when a complete telemetry refresh detects a suspected network fault."
+              />
+            ) : (
+              [...incidents]
+                .sort((a, b) => {
+                  if (a.status === "ACTIVE" && b.status !== "ACTIVE") return -1;
+                  if (b.status === "ACTIVE" && a.status !== "ACTIVE") return 1;
+                  return new Date(b.last_observed_at || b.first_detected_at) -
+                    new Date(a.last_observed_at || a.first_detected_at);
+                })
+                .map((incident) => (
+                  <div className="history-incident" key={incident.incident_id}>
+                    <div className="history-incident-header">
+                      <div className="history-incident-title">
+                        <strong>{incident.incident_id}</strong>
+                        <span>{incident.candidate_link}</span>
+                      </div>
+
+                      <div className="history-incident-badges">
+                        <span
+                          className={`incident-status ${
+                            incident.status === "ACTIVE" ? "active" : "resolved"
+                          }`}
+                        >
+                          {incident.status}
+                        </span>
+                        <span
+                          className={`severity ${
+                            incident.severity?.toLowerCase()
+                          }`}
+                        >
+                          {incident.severity || "UNKNOWN"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="incident-routers">
+                      {(incident.affected_routers ?? []).map((router) => (
+                        <span className="incident-router" key={router}>
+                          <Router size={13} />
+                          {router}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="history-incident-times">
+                      <div>
+                        <span>First detected</span>
+                        <strong>
+                          {incident.first_detected_at
+                            ? new Date(incident.first_detected_at).toLocaleString()
+                            : "—"}
+                        </strong>
+                      </div>
+                      <div>
+                        <span>Last observed</span>
+                        <strong>
+                          {incident.last_observed_at
+                            ? new Date(incident.last_observed_at).toLocaleString()
+                            : "—"}
+                        </strong>
+                      </div>
+                      {incident.resolved_at && (
+                        <div>
+                          <span>Resolved</span>
+                          <strong>
+                            {new Date(incident.resolved_at).toLocaleString()}
+                          </strong>
+                        </div>
+                      )}
+                    </div>
+
+                    {incident.evidence && (
+                      <p className="history-incident-evidence">
+                        {incident.evidence}
+                      </p>
+                    )}
+                  </div>
+                ))
+            )}
+          </div>
+        </section>
+
+
 
         <section className="section-block router-section">
           <div className="section-heading">

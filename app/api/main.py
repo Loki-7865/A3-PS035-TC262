@@ -7,6 +7,8 @@ from flask import Flask, jsonify
 from app.collector.telemetry import collect_snapshot, save_snapshot
 from app.diagnosis.bgp_analyzer import analyze_bgp
 from app.diagnosis.root_cause import correlate_findings
+from app.diagnosis.impact_analysis import analyze_impact
+from app.diagnosis.incident_tracker import update_incident_history
 
 app = Flask(__name__)
 
@@ -23,7 +25,26 @@ def load_latest_telemetry():
     with snapshots[-1].open("r", encoding="utf-8") as file:
         return json.load(file)
 
+def telemetry_collection_complete(snapshot):
+    routers = snapshot.get("routers", [])
 
+    expected_routers = {"r1", "r2", "r3", "r4", "r5"}
+    collected_routers = {
+        router.get("router", "").lower()
+        for router in routers
+        if isinstance(router, dict)
+    }
+
+    return (
+        collected_routers == expected_routers
+        and len(routers) == 5
+        and all(
+            isinstance(router, dict)
+            and router.get("healthy_collection") is True
+            and router.get("bgp", {}).get("success") is True
+            for router in routers
+        )
+    )
 def build_diagnosis(snapshot):
     routers = snapshot.get("routers", [])
 
@@ -37,6 +58,7 @@ def build_diagnosis(snapshot):
             findings.extend(analyze_bgp(router_data))
 
     correlated = correlate_findings(findings)
+    impact = analyze_impact(correlated)
 
     return {
         "snapshot_timestamp": snapshot.get("collected_at"),
@@ -44,6 +66,7 @@ def build_diagnosis(snapshot):
         "finding_count": len(findings),
         "findings": findings,
         "candidate_root_causes": correlated,
+        "impact_analysis": impact,
     }
 
 
@@ -77,7 +100,20 @@ def diagnosis():
     except ValueError as error:
         return jsonify({"error": str(error)}), 500
 
-
+@app.get("/api/incidents")
+def incidents():
+    try:
+        return jsonify({
+            "incidents": update_incident_history(
+                [],
+                telemetry_complete=False,
+            )
+        })
+    except (ValueError, OSError) as error:
+        app.logger.exception("Incident history could not be loaded")
+        return jsonify({
+            "error": "Incident history could not be loaded."
+        }), 500
 @app.post("/api/refresh")
 def refresh():
     """Collect fresh router telemetry and return the updated diagnosis."""
@@ -85,7 +121,10 @@ def refresh():
         snapshot = collect_snapshot()
         output_file = save_snapshot(snapshot)
         result = build_diagnosis(snapshot)
-
+        result["incidents"] = update_incident_history(
+            result["candidate_root_causes"],
+            telemetry_complete=telemetry_collection_complete(snapshot),
+        )
         result["collection"] = {
             "status": "completed",
             "routers_ok": sum(
