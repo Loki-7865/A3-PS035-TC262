@@ -1,0 +1,73 @@
+{
+  "scenario": {
+    "id": "healthy",
+    "name": "Healthy Network",
+    "description": "All five routers are operational with no simulated BGP failures.",
+    "mode": "demo",
+    "simulated": true,
+    "status": "healthy"
+  },
+  "telemetry": {
+    "project": "PS-035",
+    "collected_at": null,
+    "routers": [
+      {
+        "router": "r1",
+        "healthy_collection": true,
+        "bgp": {
+          "success": true
+        }
+      },
+      {
+        "router": "r2",
+        "healthy_collection": true,
+        "bgp": {
+          "success": true
+        }
+      },
+      {
+        "router": "r3",
+        "healthy_collection": true,
+        "bgp": {
+          "success": true
+        }
+      },
+      {
+        "router": "r4",
+        "healthy_collection": true,
+        "bgp": {
+          "success": true
+        }
+      },
+      {
+        "router": "r5",
+        "healthy_collection": true,
+        "bgp": {
+          "success": true
+        }
+      }
+    ]
+  },
+  "diagnosis": {
+    "snapshot_timestamp": null,
+    "routers_analyzed": 5,
+    "finding_count": 0,
+    "findings": [],
+    "candidate_root_causes": [],
+    "impact_analysis": {
+      "affected_links": [],
+      "connected_components": [["R1", "R2", "R3", "R4", "R5"]]
+    }
+  },
+  "incidents": [],
+  "topology": {
+    "routers": ["R1", "R2", "R3", "R4", "R5"],
+    "links": [
+      { "id": "R1-R2", "status": "healthy" },
+      { "id": "R1-R3", "status": "healthy" },
+      { "id": "R2-R4", "status": "healthy" },
+      { "id": "R3-R4", "status": "healthy" },
+      { "id": "R4-R5", "status": "healthy" }
+    ]
+  }
+}

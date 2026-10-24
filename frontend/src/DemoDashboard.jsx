@@ -1,0 +1,1206 @@
+import { useEffect, useState } from "react";
+import {
+  Activity,
+  ArrowRight,
+  ArrowUpRight,
+  AlertTriangle,
+  CheckCircle2,
+  Clock3,
+  GitBranch,
+  Network,
+  RefreshCw,
+  Router,
+  ShieldAlert,
+  Database,
+  Info,
+  Play,
+  Zap,
+  X,
+  ChevronRight,
+  Radio,
+  Layers,
+  Route,
+  Search,
+  ShieldCheck,
+} from "lucide-react";
+import "./App.css";
+import SaveInvestigation from "./components/SaveInvestigation";
+
+const SCENARIOS = [
+  {
+    id: "healthy",
+    name: "Healthy network",
+    category: "BASELINE",
+    description: "All systems operational",
+    icon: ShieldCheck,
+  },
+  {
+    id: "link_failure",
+    name: "Link failure",
+    category: "PHYSICAL",
+    description: "R2–R4 connection lost",
+    icon: Zap,
+  },
+  {
+    id: "bgp_failure",
+    name: "BGP mismatch",
+    category: "ROUTING",
+    description: "Physical link up, BGP down",
+    icon: GitBranch,
+  },
+  {
+    id: "multiple_faults",
+    name: "Multiple faults",
+    category: "COMPLEX",
+    description: "Two independent failures",
+    icon: Layers,
+  },
+];
+
+const LINKS = [
+  { id: "R1-R2", subnet: "10.0.12.0/30", a: "R1", b: "R2" },
+  { id: "R1-R3", subnet: "10.0.13.0/30", a: "R1", b: "R3" },
+  { id: "R2-R4", subnet: "10.0.24.0/30", a: "R2", b: "R4" },
+  { id: "R3-R4", subnet: "10.0.34.0/30", a: "R3", b: "R4" },
+  { id: "R4-R5", subnet: "10.0.45.0/30", a: "R4", b: "R5" },
+];
+
+const POSITIONS = {
+  R1: { x: 115, y: 75 },
+  R2: { x: 340, y: 75 },
+  R3: { x: 115, y: 225 },
+  R4: { x: 560, y: 150 },
+  R5: { x: 560, y: 225 },
+};
+
+const COLORS = {
+  orange: "#ea7850",
+  green: "#578866",
+  red: "#da6551",
+  amber: "#c78c3b",
+  dark: "#292924",
+  muted: "#777167",
+};
+
+function pretty(value) {
+  return String(value || "Unknown")
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function formatDate(value) {
+  if (!value) return "Not available";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+}
+
+function App() {
+  const [scenarioId, setScenarioId] = useState("healthy");
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selectedLink, setSelectedLink] = useState(null);
+  const [view, setView] = useState("overview");
+  const [reload, setReload] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function load() {
+      setLoading(true);
+      setError("");
+
+      try {
+        const response = await fetch(
+          `${import.meta.env.BASE_URL}demo/scenarios/${scenarioId}.json`,
+          { signal: controller.signal, cache: "no-store" },
+        );
+
+        if (!response.ok) {
+          throw new Error(`Scenario unavailable: HTTP ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (
+          result.scenario?.id !== scenarioId ||
+          !Array.isArray(result.telemetry?.routers) ||
+          !Array.isArray(result.diagnosis?.findings) ||
+          !Array.isArray(result.diagnosis?.candidate_root_causes) ||
+          !Array.isArray(result.topology?.links) ||
+          !Array.isArray(result.incidents)
+        ) {
+          throw new Error("Scenario data has an invalid structure.");
+        }
+
+        setData(result);
+      } catch (err) {
+        if (err.name !== "AbortError") {
+          setError(err.message);
+          setData(null);
+        }
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }
+
+    load();
+    return () => controller.abort();
+  }, [scenarioId, reload]);
+
+  const scenario = SCENARIOS.find((s) => s.id === scenarioId);
+  const routers = data?.telemetry?.routers ?? [];
+  const findings = data?.diagnosis?.findings ?? [];
+  const causes = data?.diagnosis?.candidate_root_causes ?? [];
+  const evidence = data?.evidence ?? [];
+  const incidents = data?.incidents ?? [];
+  const impact = data?.diagnosis?.impact_analysis;
+  const links = data?.topology?.links ?? [];
+
+  function linkStatus(id) {
+    return links.find((link) => link.id === id)?.status ?? "unknown";
+  }
+
+  function routerStatus(name) {
+    const router = routers.find((r) => r.router?.toUpperCase() === name);
+
+    if (!router?.healthy_collection) return "unknown";
+
+    const fault =
+      findings.some((f) => f.router?.toUpperCase() === name) ||
+      links.some(
+        (link) =>
+          link.id.split("-").includes(name) && link.status !== "healthy",
+      );
+
+    return fault ? "fault" : "healthy";
+  }
+
+  const healthyCount = routers.filter(
+    (r) => routerStatus(r.router.toUpperCase()) === "healthy",
+  ).length;
+
+  const selectedEvidence = evidence.filter(
+    (item) => item.link === selectedLink,
+  );
+
+  const selectedCauses = causes.filter(
+    (cause) => (cause.suspected_link || cause.candidate_link) === selectedLink,
+  );
+
+  const selectedInfo = links.find((link) => link.id === selectedLink);
+
+  function changeScenario(id) {
+    setScenarioId(id);
+    setSelectedLink(null);
+    setView("overview");
+  }
+
+  function openLink(id) {
+    setSelectedLink(id);
+    setView("investigation");
+  }
+
+  const labelStyle = {
+    fontSize: 10,
+    letterSpacing: "2px",
+    fontWeight: 800,
+    color: "#b6785a",
+  };
+
+  return (
+    <div className="app-shell">
+      <aside className="sidebar">
+        <div className="brand">
+          <div className="brand-mark">
+            <Network size={25} />
+          </div>
+          <div>
+            <h1>NETSCOPE</h1>
+            <span>NETWORK INTELLIGENCE</span>
+          </div>
+        </div>
+
+        <p className="sidebar-label">WORKSPACE</p>
+
+        <nav className="navigation">
+          {[
+            ["overview", Activity, "Overview"],
+            ["topology", GitBranch, "Topology"],
+            ["diagnostics", ShieldAlert, "Diagnostics"],
+            ["evidence", Database, "Evidence"],
+            ["incident-history", Clock3, "Incidents"],
+          ].map(([id, Icon, label]) => (
+            <a
+              key={id}
+              className={`nav-item ${view === id ? "active" : ""}`}
+              href={`#${id}`}
+              onClick={() => setView(id)}
+            >
+              <Icon size={18} />
+              {label}
+            </a>
+          ))}
+        </nav>
+
+        <div className="sidebar-bottom">
+          <div className="connection-indicator">
+            <span className="status-dot online" />
+            <div>
+              <strong>Demo environment</strong>
+              <span>Simulation data enabled</span>
+            </div>
+          </div>
+          <p>AIORI-3 · PS-035</p>
+          <p>Evidence-Based Fault Localisation</p>
+        </div>
+      </aside>
+
+      <main className="main-content">
+        <header className="topbar">
+          <div>
+            <div className="eyebrow">NETWORK OPERATIONS / INTERACTIVE LAB</div>
+            <h2>
+              See beyond the alert
+              <span style={{ color: COLORS.orange }}>.</span>
+            </h2>
+            <p>
+              One network. Many possible failures. Discover what the evidence is
+              actually telling you.
+            </p>
+          </div>
+
+          <button
+            className="refresh-button"
+            onClick={() => setReload((n) => n + 1)}
+            disabled={loading}
+          >
+            <RefreshCw size={17} className={loading ? "spin" : ""} />
+            {loading ? "Loading..." : "Reload scenario"}
+          </button>
+        </header>
+
+        <div
+          style={{
+            padding: "29px",
+            background: COLORS.dark,
+            borderRadius: 24,
+            marginBottom: 28,
+            color: "white",
+            position: "relative",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              width: 240,
+              height: 240,
+              right: -70,
+              top: -95,
+              border: "45px solid #ffffff08",
+              borderRadius: "50%",
+              pointerEvents: "none",
+            }}
+          />
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 15,
+            }}
+          >
+            <span style={{ ...labelStyle, color: "#f8ac8d" }}>
+              THE NETWORK PLAYGROUND
+            </span>
+
+            <span
+              style={{
+                padding: "8px 13px",
+                border: "1px solid #ffffff30",
+                borderRadius: 30,
+                fontSize: 11,
+              }}
+            >
+              <Radio
+                size={12}
+                style={{
+                  display: "inline",
+                  marginRight: 7,
+                  verticalAlign: "middle",
+                }}
+              />
+              SIMULATED DEMO
+            </span>
+          </div>
+
+          <h3
+            style={{
+              fontFamily: "Space Grotesk, sans-serif",
+              fontSize: "clamp(25px,3vw,40px)",
+              lineHeight: 1.15,
+              maxWidth: 610,
+              letterSpacing: "-1.5px",
+              margin: "23px 0 12px",
+            }}
+          >
+            Break the network.
+            <br />
+            <span style={{ color: "#f5a47e" }}>Follow the evidence.</span>
+          </h3>
+
+          <p
+            style={{
+              maxWidth: 510,
+              fontSize: 13,
+              color: "#c6c7bd",
+              lineHeight: 1.8,
+            }}
+          >
+            Explore four recorded scenarios, inspect network links, understand
+            suspected root causes and assess connectivity impact.
+          </p>
+
+          <a
+            href="#topology"
+            className="refresh-button"
+            style={{
+              background: COLORS.orange,
+              borderColor: COLORS.orange,
+              width: "fit-content",
+              marginTop: 19,
+              display: "inline-flex",
+            }}
+          >
+            Explore the network <ArrowUpRight size={17} />
+          </a>
+        </div>
+
+        <section
+          id="overview"
+          className="section-block"
+          style={{ marginTop: 0 }}
+        >
+          <div className="section-heading">
+            <div>
+              <div style={labelStyle}>01 / EXPERIMENT</div>
+              <h3 style={{ marginTop: 8 }}>Choose your scenario</h3>
+              <p>Each experiment tells a different network failure story.</p>
+            </div>
+            <span className="pill">4 SCENARIOS</span>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))",
+              gap: 14,
+              marginTop: 19,
+              marginBottom: 19,
+            }}
+          >
+            {SCENARIOS.map((item, i) => {
+              const Icon = item.icon;
+              const active = scenarioId === item.id;
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => changeScenario(item.id)}
+                  aria-pressed={active}
+                  style={{
+                    background: active ? "#fbe8da" : "#fff",
+                    border: active ? "2px solid #ea7850" : "1px solid #e5dfd5",
+                    borderRadius: 20,
+                    padding: 19,
+                    textAlign: "left",
+                    minHeight: 170,
+                    color: COLORS.dark,
+                    cursor: "pointer",
+                    transition: "all .25s ease",
+                    boxShadow: active ? "0 10px 26px #ea78501a" : "none",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 800,
+                        color: active ? "#a95334" : "#9a9187",
+                        letterSpacing: 1.5,
+                      }}
+                    >
+                      0{i + 1} / {item.category}
+                    </span>
+                    <ArrowUpRight
+                      size={17}
+                      color={active ? COLORS.orange : "#aaa49c"}
+                    />
+                  </div>
+
+                  <div
+                    style={{
+                      width: 42,
+                      height: 42,
+                      display: "grid",
+                      placeItems: "center",
+                      borderRadius: 13,
+                      background: active ? "#efc6ad" : "#f5f1eb",
+                      margin: "14px 0",
+                    }}
+                  >
+                    <Icon size={21} />
+                  </div>
+
+                  <strong style={{ display: "block", fontSize: 15 }}>
+                    {item.name}
+                  </strong>
+                  <span
+                    style={{
+                      display: "block",
+                      marginTop: 6,
+                      fontSize: 11,
+                      color: "#777167",
+                    }}
+                  >
+                    {item.description}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 9,
+              padding: "11px 3px",
+              color: "#8a8175",
+              fontSize: 11,
+            }}
+          >
+            <Info size={16} style={{ flexShrink: 0 }} />
+            These scenarios use synthetic telemetry and prerecorded diagnoses.
+            No live fault is injected by this interface.
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 16,
+              padding: "19px 22px",
+              marginTop: 18,
+              background: "#fff",
+              border: "1px solid #e9e3da",
+              borderRadius: 17,
+            }}
+          >
+            <div>
+              <strong
+                style={{
+                  display: "block",
+                  fontSize: 14,
+                  color: "#292924",
+                }}
+              >
+                Save this investigation
+              </strong>
+
+              <p
+                style={{
+                  margin: "6px 0 0",
+                  fontSize: 12,
+                  color: "#777167",
+                }}
+              >
+                Keep this simulated scenario in your personal workspace.
+              </p>
+            </div>
+
+            <SaveInvestigation
+              key={`${scenarioId}-${reload}`}
+              scenario={
+                !loading && data?.scenario?.id === scenarioId ? data : null
+              }
+            />
+          </div>
+        </section>
+
+        {error && (
+          <div className="error-banner" role="alert">
+            <AlertTriangle size={18} />
+            {error}
+          </div>
+        )}
+
+        <section className="stats-grid" style={{ marginTop: 25 }}>
+          <Metric
+            icon={Router}
+            title="NETWORK DEVICES"
+            value={routers.length}
+            detail="Monitored routers"
+          />
+          <Metric
+            icon={CheckCircle2}
+            title="HEALTHY ROUTERS"
+            value={healthyCount}
+            detail="No reported fault"
+            accent="green"
+          />
+          <Metric
+            icon={AlertTriangle}
+            title="ACTIVE FINDINGS"
+            value={findings.length}
+            detail="Diagnostic observations"
+            accent={findings.length ? "red" : "green"}
+          />
+          <Metric
+            icon={Search}
+            title="SUSPECTED CAUSES"
+            value={causes.length}
+            detail="Root-cause hypotheses"
+            accent={causes.length ? "amber" : "green"}
+          />
+        </section>
+
+        <section id="topology" className="section-block">
+          <div className="section-heading">
+            <div>
+              <div style={labelStyle}>02 / EXPLORE</div>
+              <h3 style={{ marginTop: 8 }}>The network, visualized.</h3>
+              <p>Click any connection to investigate its state.</p>
+            </div>
+            <div className="legend">
+              <span>
+                <i className="legend-green" /> Healthy
+              </span>
+              <span>
+                <i className="legend-red" /> Fault
+              </span>
+            </div>
+          </div>
+
+          <div className="topology-card">
+            <div className="topology-canvas">
+              <svg
+                className="topology-lines"
+                viewBox="0 0 700 300"
+                preserveAspectRatio="none"
+                aria-label="Network topology"
+              >
+                {LINKS.map((link) => {
+                  const a = POSITIONS[link.a];
+                  const b = POSITIONS[link.b];
+                  const status = linkStatus(link.id);
+                  const color =
+                    status === "failed"
+                      ? COLORS.red
+                      : status === "degraded"
+                        ? COLORS.amber
+                        : status === "healthy"
+                          ? "#83bb8d"
+                          : "#a8a8a1";
+
+                  return (
+                    <line
+                      key={link.id}
+                      x1={a.x}
+                      y1={a.y}
+                      x2={b.x}
+                      y2={b.y}
+                      stroke={color}
+                      style={{
+                        stroke: color,
+                        strokeWidth: selectedLink === link.id ? 5 : 3,
+                        strokeDasharray: status === "healthy" ? "none" : "8 6",
+                        cursor: "pointer",
+                        pointerEvents: "stroke",
+                      }}
+                      onClick={() => openLink(link.id)}
+                    />
+                  );
+                })}
+              </svg>
+
+              {Object.entries(POSITIONS).map(([name, p]) => {
+                const status = routerStatus(name);
+
+                return (
+                  <div
+                    key={name}
+                    className="router-node"
+                    style={{
+                      left: `${(p.x / 700) * 100}%`,
+                      top: `${(p.y / 300) * 100}%`,
+                    }}
+                  >
+                    <div
+                      className={`node-circle ${
+                        status === "healthy"
+                          ? "healthy"
+                          : status === "unknown"
+                            ? "unknown"
+                            : "fault"
+                      }`}
+                    >
+                      <Router size={23} />
+                      <span className="node-dot" />
+                    </div>
+                    <strong>{name}</strong>
+                    <span>
+                      {status === "healthy"
+                        ? "No findings"
+                        : status === "unknown"
+                          ? "Unknown"
+                          : "Attention required"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="link-list">
+              {LINKS.map((link) => {
+                const status = linkStatus(link.id);
+
+                return (
+                  <button
+                    key={link.id}
+                    className="link-chip"
+                    onClick={() => openLink(link.id)}
+                  >
+                    <span
+                      className={`link-indicator ${
+                        status === "healthy" ? "healthy" : "fault"
+                      }`}
+                      style={{
+                        background:
+                          status === "degraded" ? COLORS.amber : undefined,
+                      }}
+                    />
+                    <strong>{link.id}</strong>
+                    <span>{link.subnet}</span>
+                    <span
+                      className={`state-label ${
+                        status === "healthy" ? "" : "fault"
+                      }`}
+                    >
+                      {pretty(status)}{" "}
+                      <ChevronRight
+                        size={12}
+                        style={{ display: "inline", verticalAlign: "middle" }}
+                      />
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <p className="disclaimer">
+              Simulated observations. Physical topology connectivity does not
+              guarantee actual routing reachability.
+            </p>
+          </div>
+        </section>
+
+        {selectedLink && (
+          <section id="investigation" className="section-block">
+            <div className="section-heading">
+              <div>
+                <div style={labelStyle}>03 / INVESTIGATE</div>
+                <h3 style={{ marginTop: 8 }}>Investigation: {selectedLink}</h3>
+                <p>Context and evidence for the selected connection.</p>
+              </div>
+              <button
+                className="refresh-button"
+                onClick={() => setSelectedLink(null)}
+              >
+                <X size={15} /> Close
+              </button>
+            </div>
+
+            <div className="panel" style={{ padding: 24 }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 12,
+                  alignItems: "center",
+                  marginBottom: 18,
+                }}
+              >
+                <span
+                  className={`severity ${
+                    linkStatus(selectedLink) === "failed"
+                      ? "critical"
+                      : linkStatus(selectedLink) === "degraded"
+                        ? "warning"
+                        : "low"
+                  }`}
+                >
+                  {pretty(linkStatus(selectedLink))}
+                </span>
+                <span className="pill">
+                  {selectedEvidence.length} Evidence records
+                </span>
+                <span className="pill">
+                  {selectedCauses.length} Root-cause candidates
+                </span>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))",
+                  gap: 12,
+                  marginBottom: 23,
+                }}
+              >
+                <Detail
+                  title="Physical state"
+                  value={pretty(
+                    selectedInfo?.physical_status || "Not measured",
+                  )}
+                />
+                <Detail
+                  title="BGP state"
+                  value={pretty(selectedInfo?.bgp_status || "Not specified")}
+                />
+                <Detail title="Link" value={selectedLink} />
+              </div>
+
+              <h4>What the evidence suggests</h4>
+
+              {selectedCauses.length === 0 ? (
+                <p style={{ color: COLORS.muted, fontSize: 13 }}>
+                  No root-cause hypothesis is recorded for this connection.
+                </p>
+              ) : (
+                selectedCauses.map((cause) => (
+                  <div className="incident-summary" key={cause.id}>
+                    <strong>{pretty(cause.type)}</strong>
+                    <p>{cause.explanation}</p>
+                    {cause.recommended_action && (
+                      <div className="evidence-note" style={{ marginTop: 12 }}>
+                        <Info size={16} />
+                        {cause.recommended_action}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+
+              <h4 style={{ marginTop: 25 }}>Supporting observations</h4>
+
+              {selectedEvidence.length === 0 ? (
+                <p style={{ fontSize: 13, color: COLORS.muted }}>
+                  No detailed observations recorded for this link.
+                </p>
+              ) : (
+                selectedEvidence.map((item) => (
+                  <div
+                    className="observation-row"
+                    key={item.id}
+                    style={{ marginBottom: 9 }}
+                  >
+                    <div className="observation-heading">
+                      <span>
+                        {pretty(item.source)} · {item.router}
+                      </span>
+                      <span>{item.id}</span>
+                    </div>
+                    <p>{item.message}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+        )}
+
+        <section id="diagnostics" className="section-block">
+          <div className="section-heading">
+            <div>
+              <div style={labelStyle}>04 / UNDERSTAND</div>
+              <h3 style={{ marginTop: 8 }}>Behind the alerts.</h3>
+              <p>Individual findings and correlated root causes.</p>
+            </div>
+            <span className="pill">{findings.length} findings</span>
+          </div>
+
+          <div className="lower-grid">
+            <div className="panel">
+              {findings.length === 0 ? (
+                <Empty
+                  icon={CheckCircle2}
+                  title="Everything looks healthy"
+                  description="No abnormal findings in this demo snapshot."
+                />
+              ) : (
+                findings.map((item, i) => (
+                  <div className="finding-row" key={item.id || i}>
+                    <div className="finding-icon">
+                      <AlertTriangle size={19} />
+                    </div>
+                    <div className="finding-content">
+                      <div className="finding-title">
+                        <strong>{pretty(item.type)}</strong>
+                        <span className={`severity ${item.severity}`}>
+                          {item.severity}
+                        </span>
+                      </div>
+                      <p>
+                        {item.message ||
+                          `Abnormal observation on ${item.link || item.router}.`}
+                      </p>
+                      <span className="finding-meta">
+                        {item.router} · {item.link || "Router finding"}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="panel">
+              {causes.length === 0 ? (
+                <Empty
+                  icon={ShieldCheck}
+                  title="No suspected failures"
+                  description="No root-cause candidates in this scenario."
+                />
+              ) : (
+                causes.map((cause, i) => (
+                  <div className="root-cause" key={cause.id || i}>
+                    <div className="root-cause-top">
+                      <div className="root-cause-icon">
+                        <GitBranch size={19} />
+                      </div>
+                      <div>
+                        <strong>
+                          {cause.suspected_link || cause.candidate_link}
+                        </strong>
+                        <span>{pretty(cause.type)}</span>
+                      </div>
+                      <span className={`severity ${cause.severity}`}>
+                        {cause.severity}
+                      </span>
+                    </div>
+                    <div className="incident-summary">
+                      <strong>Suspected root cause</strong>
+                      <p>{cause.explanation || cause.assessment}</p>
+                    </div>
+                    <button
+                      className="refresh-button"
+                      style={{ width: "100%" }}
+                      onClick={() => {
+                        openLink(cause.suspected_link || cause.candidate_link);
+                        setTimeout(() => {
+                          document
+                            .getElementById("investigation")
+                            ?.scrollIntoView({ behavior: "smooth" });
+                        }, 50);
+                      }}
+                    >
+                      Investigate this connection
+                      <ArrowRight size={15} />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section id="evidence" className="section-block">
+          <div className="section-heading">
+            <div>
+              <div style={labelStyle}>05 / TRACE</div>
+              <h3 style={{ marginTop: 8 }}>The evidence trail.</h3>
+              <p>Every observation in chronological order.</p>
+            </div>
+            <span className="pill">{evidence.length} observations</span>
+          </div>
+
+          <div className="panel">
+            {evidence.length === 0 ? (
+              <Empty
+                icon={Database}
+                title="No abnormal evidence"
+                description="The healthy scenario has no incident evidence."
+              />
+            ) : (
+              [...evidence]
+                .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+                .map((item, i) => (
+                  <div className="finding-row" key={item.id || i}>
+                    <div className="finding-icon">
+                      <Activity size={19} />
+                    </div>
+                    <div className="finding-content">
+                      <div className="finding-title">
+                        <strong>{pretty(item.source)}</strong>
+                        <span className="pill">{pretty(item.observation)}</span>
+                      </div>
+                      <p>{item.message}</p>
+                      <span className="finding-meta">
+                        {item.router} · {item.link || "Network"} ·{" "}
+                        {formatDate(item.timestamp)}
+                      </span>
+                    </div>
+                  </div>
+                ))
+            )}
+          </div>
+        </section>
+
+        <section id="incident-history" className="section-block">
+          <div className="section-heading">
+            <div>
+              <div style={labelStyle}>06 / TRACK</div>
+              <h3 style={{ marginTop: 8 }}>Incident records.</h3>
+              <p>Recorded incidents for the chosen simulation.</p>
+            </div>
+            <span className="pill">{incidents.length} incidents</span>
+          </div>
+
+          <div className="panel incident-history-panel">
+            {incidents.length === 0 ? (
+              <Empty
+                icon={Clock3}
+                title="No active incidents"
+                description="No incidents recorded for this scenario."
+              />
+            ) : (
+              incidents.map((item, i) => (
+                <div className="history-incident" key={item.id || i}>
+                  <div className="history-incident-header">
+                    <div className="history-incident-title">
+                      <strong>{item.title || item.id}</strong>
+                      <span>{item.id}</span>
+                    </div>
+                    <div className="history-incident-badges">
+                      <span className="incident-status active">
+                        {item.status}
+                      </span>
+                      <span className={`severity ${item.severity}`}>
+                        {item.severity}
+                      </span>
+                    </div>
+                  </div>
+                  <p>{item.description}</p>
+                  <div className="history-incident-times">
+                    <Detail
+                      title="Detected"
+                      value={formatDate(item.detected_at)}
+                    />
+                    <Detail title="Affected link" value={item.affected_link} />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section className="section-block">
+          <div className="section-heading">
+            <div>
+              <div style={labelStyle}>07 / ASSESS</div>
+              <h3 style={{ marginTop: 8 }}>Network impact.</h3>
+              <p>What could this failure mean for connectivity?</p>
+            </div>
+          </div>
+
+          <div className="panel" style={{ padding: 25 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 14,
+                marginBottom: 22,
+              }}
+            >
+              <div className="root-cause-icon">
+                <Route size={22} />
+              </div>
+              <div>
+                <strong>Topology impact assessment</strong>
+                <p
+                  style={{
+                    fontSize: 12,
+                    lineHeight: 1.8,
+                    color: COLORS.muted,
+                  }}
+                >
+                  {impact?.message ||
+                    "No network impact information is recorded."}
+                </p>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))",
+                gap: 12,
+              }}
+            >
+              <Detail
+                title="Affected physical links"
+                value={impact?.affected_links?.join(", ") || "None"}
+              />
+              <Detail
+                title="BGP sessions"
+                value={
+                  impact?.affected_bgp_sessions?.join(", ") || "Not specified"
+                }
+              />
+              <Detail
+                title="Alternate topology path"
+                value={impact?.alternate_path?.join(" → ") || "Not specified"}
+              />
+              <Detail
+                title="Network components"
+                value={impact?.connected_components?.length ?? "Unknown"}
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className="section-block router-section">
+          <div className="section-heading">
+            <div>
+              <div style={labelStyle}>08 / INVENTORY</div>
+              <h3 style={{ marginTop: 8 }}>Meet the routers.</h3>
+              <p>Five FRRouting nodes in our virtual network.</p>
+            </div>
+          </div>
+
+          <div className="router-grid">
+            {routers.map((router) => {
+              const name = router.router.toUpperCase();
+              const state = routerStatus(name);
+              const count = findings.filter(
+                (f) => f.router?.toUpperCase() === name,
+              ).length;
+
+              return (
+                <div className="router-card" key={name}>
+                  <div className="router-card-head">
+                    <div className="router-icon">
+                      <Router size={20} />
+                    </div>
+                    <span
+                      className={`router-status ${
+                        state === "healthy" ? "healthy" : "fault"
+                      }`}
+                    >
+                      {state === "healthy" ? (
+                        <CheckCircle2 size={14} />
+                      ) : (
+                        <AlertTriangle size={14} />
+                      )}
+                      {pretty(state)}
+                    </span>
+                  </div>
+                  <h4>{name}</h4>
+                  <p className="router-subtitle">FRRouting / BGP</p>
+                  <div className="router-details">
+                    <span>Findings</span>
+                    <strong>{count}</strong>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <footer className="footer">
+          <span>
+            <Activity size={14} /> NETSCOPE · AIORI-3
+          </span>
+          <span>
+            <Clock3 size={14} />
+            {formatDate(data?.diagnosis?.snapshot_timestamp)}
+          </span>
+          <span>SIMULATED DATA · NOT LIVE TELEMETRY</span>
+        </footer>
+      </main>
+    </div>
+  );
+}
+
+function Metric({ icon: Icon, title, value, detail, accent = "" }) {
+  return (
+    <div className="stat-card">
+      <div className={`stat-icon ${accent}`}>
+        <Icon size={20} />
+      </div>
+      <span className="stat-label">{title}</span>
+      <strong className="stat-value">{value}</strong>
+      <span className="stat-detail">{detail}</span>
+    </div>
+  );
+}
+
+function Detail({ title, value }) {
+  return (
+    <div
+      style={{
+        padding: 16,
+        background: "#f9f7f3",
+        border: "1px solid #e9e3da",
+        borderRadius: 15,
+        minWidth: 0,
+      }}
+    >
+      <span
+        style={{
+          color: "#8b8479",
+          fontSize: 10,
+          fontWeight: 800,
+          textTransform: "uppercase",
+          letterSpacing: 1,
+        }}
+      >
+        {title}
+      </span>
+      <strong
+        style={{
+          display: "block",
+          fontSize: 13,
+          marginTop: 10,
+          overflowWrap: "anywhere",
+        }}
+      >
+        {value}
+      </strong>
+    </div>
+  );
+}
+
+function Empty({ icon: Icon, title, description }) {
+  return (
+    <div className="empty-state">
+      <div>
+        <Icon size={27} />
+      </div>
+      <strong>{title}</strong>
+      <p>{description}</p>
+    </div>
+  );
+}
+
+export default App;
