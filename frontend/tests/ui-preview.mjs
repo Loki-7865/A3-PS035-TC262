@@ -8,8 +8,14 @@ const server = await createServer({
     name: 'isolated-investigations-fixture', enforce: 'pre',
     resolveId(id) { if (id === '/fixture.jsx') return '\0fixture.jsx'; },
     load(id) {
-      if (id === '\0fixture.jsx') return `import React from 'react'; import { createRoot } from 'react-dom/client'; import { BrowserRouter } from 'react-router'; import Investigations from '/src/pages/Investigations.jsx'; import '/src/index.css'; createRoot(document.getElementById('root')).render(React.createElement(BrowserRouter,null,React.createElement(Investigations)));`;
-      if (id.endsWith('/contexts/authState.js')) return `export const useAuth = () => ({currentUser:{uid:'synthetic-test-owner'}});`;
+      if (id === '\0fixture.jsx') return `import React from 'react'; import { createRoot } from 'react-dom/client'; import { BrowserRouter } from 'react-router'; import Investigations from '/src/pages/Investigations.jsx'; import Dashboard from '/src/pages/UserDashboard.jsx'; import '/src/index.css'; createRoot(document.getElementById('root')).render(React.createElement(BrowserRouter,null,React.createElement(new URLSearchParams(location.search).has('dashboard') ? Dashboard : Investigations)));`;
+      if (id.endsWith('/contexts/authState.js')) return `export const useAuth = () => ({currentUser:{uid:'synthetic-test-owner',displayName:'Test Operator',email:'operator@example.test',emailVerified:true,photoURL:'/fixture-missing-avatar.png',providerData:[{providerId:'google.com'}]},logout:async()=>{if(new URLSearchParams(location.search).has('logout-error')) throw Error('Fixture signout error');}});`;
+      if (id.endsWith('/services/dashboard.js')) return `
+        const params = new URLSearchParams(location.search);
+        let attempts=0;
+        export async function loadWorkspaceCounts() { await new Promise(r=>setTimeout(r,300)); if(params.has('counts-error') && !attempts++) throw Error('denied'); return {total:params.has('empty')?0:31,demo:params.has('empty')?0:27,live:0,checkedAt:new Date()}; }
+        export function subscribeRecentInvestigations(success,error) { const timer=setTimeout(()=>{if(params.has('recent-error')) {error(Error('denied'));return;} success({cached:params.has('cached'),records:params.has('empty')||params.has('legacy')?[]:Array.from({length:5},(_,i)=>({id:String(i),title:'Saved network investigation '+(i+1),source:'demo',createdAt:{seconds:1793000000-i*100}}))});},300); return ()=>clearTimeout(timer); }
+      `;
       if (id.endsWith('/services/investigationHistory.js')) return `
         const params = new URLSearchParams(location.search);
         const all = Array.from({length: params.has('empty') ? 0 : 31}, (_,i) => ({id:String(i),title:i===0?'Legacy metadata':i===30?'Final searchable report':'Investigation '+String(i).padStart(2,'0'),source:'demo',scenarioId:i%2?'bgp_failure':'link_failure',status:'saved',...(i===0?{}:{createdAt:{seconds:1793000000+i*100},findingsCount:i%5,rootCausesCount:i%3,evidenceCount:11,incidentsCount:2,snapshotJson:'{}'})}));

@@ -1,336 +1,99 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router";
-import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
-
+import { useEffect, useRef, useState } from "react";
+import { Link, NavLink, useNavigate } from "react-router";
+import { ArrowUpRight, FolderSearch, LayoutDashboard, Network, Radio, RefreshCw } from "lucide-react";
 import { useAuth } from "../contexts/authState";
-import { db } from "../services/firebase";
+import { loadWorkspaceCounts, subscribeRecentInvestigations } from "../services/dashboard";
+import { historyError } from "../services/investigationHistory";
+import { savedTime, sourceOf, titleOf } from "../utils/investigationList";
 import "../styles/UserDashboard.css";
+import "../styles/Dashboard.css";
 
 export default function UserDashboard() {
+  const { currentUser } = useAuth();
+  return <DashboardWorkspace key={currentUser.uid} />;
+}
+function DashboardWorkspace() {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
-
-  const [investigations, setInvestigations] = useState([]);
-  const [historyLoading, setHistoryLoading] = useState(true);
-  const [historyError, setHistoryError] = useState("");
-  const [error, setError] = useState("");
+  const [version, setVersion] = useState(0);
   const [loggingOut, setLoggingOut] = useState(false);
-
-  const displayName =
-    currentUser?.displayName || currentUser?.email?.split("@")[0] || "Operator";
-
-  const firstName = displayName.split(" ")[0];
-
-  useEffect(() => {
-    if (!currentUser?.uid) {
-      return;
-    }
-
-    const investigationsRef = collection(
-      db,
-      "users",
-      currentUser.uid,
-      "investigations",
-    );
-
-    const investigationsQuery = query(
-      investigationsRef,
-      orderBy("createdAt", "desc"),
-    );
-
-    const unsubscribe = onSnapshot(
-      investigationsQuery,
-      (snapshot) => {
-        const records = snapshot.docs.map((document) => ({
-          id: document.id,
-          ...document.data(),
-        }));
-
-        setInvestigations(records);
-        setHistoryLoading(false);
-        setHistoryError("");
-      },
-      (err) => {
-        console.error("Firestore read failed:", err);
-        setHistoryError("Could not load saved investigations.");
-        setHistoryLoading(false);
-      },
-    );
-
-    return () => unsubscribe();
-  }, [currentUser?.uid]);
+  const [logoutError, setLogoutError] = useState("");
+  const logoutPending = useRef(false);
+  const displayName = currentUser.displayName?.trim() || currentUser.email?.split("@")[0] || "Operator";
 
   async function handleLogout() {
-    setError("");
-    setLoggingOut(true);
-
-    try {
-      await logout();
-      navigate("/login", { replace: true });
-    } catch (err) {
-      console.error("Logout failed:", err);
-      setError("Unable to log out. Please try again.");
-    } finally {
-      setLoggingOut(false);
-    }
+    if (logoutPending.current) return;
+    logoutPending.current = true;
+    setLoggingOut(true); setLogoutError("");
+    try { await logout(); navigate("/login", { replace: true }); }
+    catch { setLogoutError("Unable to sign out. Please try again."); }
+    finally { logoutPending.current = false; setLoggingOut(false); }
   }
-
-  function formatTimestamp(timestamp) {
-    if (!timestamp?.toDate) return "Just saved";
-
-    return timestamp.toDate().toLocaleString("en-IN", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  }
-
-  return (
-    <div className="workspace-page">
-      <header className="workspace-header">
-        <Link to="/" className="workspace-brand">
-          <span className="workspace-brand-mark">N</span>
-          NETSCOPE<span className="workspace-brand-dot">.</span>
-        </Link>
-
-        <div className="workspace-header-actions">
-          <Link to="/dashboard/investigations" className="workspace-demo-link">My Investigations</Link>
-          <Link to="/demo" className="workspace-demo-link">
-            Open Demo
-          </Link>
-
-          <button
-            className="workspace-logout"
-            onClick={handleLogout}
-            disabled={loggingOut}
-          >
-            {loggingOut ? "Signing out..." : "Log out ↗"}
-          </button>
-        </div>
-      </header>
-
-      <main className="workspace-main">
-        <div className="workspace-intro">
-          <div className="workspace-eyebrow">
-            <span className="workspace-live-dot" />
-            PERSONAL WORKSPACE
-          </div>
-
-          <h1>
-            Welcome back, <span>{firstName}.</span>
-          </h1>
-
-          <p>
-            Your command center for evidence-based network fault investigation.
-          </p>
-        </div>
-
-        <section className="workspace-overview">
-          <div className="workspace-section-top">
-            <h2>Workspace overview</h2>
-            <span>YOUR NETWORK INTELLIGENCE HUB</span>
-          </div>
-
-          <div className="workspace-stat-grid">
-            <div className="workspace-stat">
-              <span>Saved investigations</span>
-
-              <strong>
-                {historyLoading
-                  ? "..."
-                  : historyError
-                    ? "—"
-                    : investigations.length}
-              </strong>
-
-              <small>
-                {historyError || "Investigations stored in your workspace"}
-              </small>
-            </div>
-
-            <div className="workspace-stat">
-              <span>Active monitoring</span>
-              <strong className="workspace-muted-stat">Not connected</strong>
-              <small>No live network connected yet</small>
-            </div>
-
-            <div className="workspace-stat">
-              <span>Demo scenarios</span>
-              <strong>04</strong>
-              <small>Ready to explore</small>
-            </div>
-          </div>
+  return <div className="workspace-page dashboard-page">
+    <a className="dashboard-skip" href="#dashboard-content">Skip to workspace</a>
+    <header className="workspace-header">
+      <Link to="/" className="workspace-brand"><span className="workspace-brand-mark">N</span>NETSCOPE<span className="workspace-brand-dot">.</span></Link>
+      <div className="dashboard-header-actions"><span>Personal workspace</span><button className="workspace-logout" onClick={handleLogout} disabled={loggingOut}>{loggingOut ? "Signing out…" : "Log out ↗"}</button></div>
+    </header>
+    <div className="dashboard-shell">
+      <aside className="dashboard-sidebar">
+        <p className="dashboard-eyebrow">WORKSPACE</p>
+        <nav aria-label="Workspace navigation">
+          <NavLink to="/dashboard" end><LayoutDashboard size={18} />Overview</NavLink>
+          <NavLink to="/dashboard/investigations"><FolderSearch size={18} />My Investigations</NavLink>
+          <Link to="/demo"><Network size={18} />Demo lab</Link>
+          <a href="#live-status"><Radio size={18} />Live monitoring</a>
+        </nav>
+        <div className="dashboard-sidebar-note"><span className="dashboard-offline-dot" />Live not connected<p>Your saved reports and demo remain available without the network lab.</p></div>
+      </aside>
+      <main id="dashboard-content" className="dashboard-main" tabIndex={-1}>
+        <div className="dashboard-intro"><p className="dashboard-eyebrow">NETWORK INVESTIGATION WORKSPACE</p><h1>Welcome back, <span>{displayName.split(/\s+/)[0]}.</span></h1><p>Review the evidence. Pick up an investigation. Keep uncertainty visible.</p></div>
+        {logoutError && <p role="alert" className="dashboard-error">{logoutError}</p>}
+        <WorkspaceData key={version} onRefresh={() => setVersion((value) => value + 1)} />
+        <section className="dashboard-quick-actions" aria-label="Quick actions">
+          <Link to="/demo" className="dashboard-demo-action"><Network size={23} /><h2>Explore the demo lab</h2><p>Inspect simulated faults and save the evidence for later.</p><span>Launch demo <ArrowUpRight size={16} /></span></Link>
+          <Link to="/dashboard/investigations"><FolderSearch size={23} /><h2>My Investigations</h2><p>Search your archive, compare observations, and reopen saved reports.</p><span>Browse reports <ArrowUpRight size={16} /></span></Link>
+          <a href="#live-status"><Radio size={23} /><h2>Live monitoring</h2><p>No live connection is configured. Review connection availability.</p><span>View connection status ↓</span></a>
         </section>
-
-        <section className="workspace-content-grid">
-          <div className="workspace-feature-card">
-            <div className="workspace-feature-icon">↗</div>
-
-            <div className="workspace-feature-label">
-              INTERACTIVE NETWORK LAB
-            </div>
-
-            <h2>Investigate a network failure.</h2>
-
-            <p>
-              Explore predefined network incidents, inspect evidence, and
-              visualize likely root causes.
-            </p>
-
-            <Link to="/demo" className="workspace-launch">
-              Launch demo <span>↗</span>
-            </Link>
-
-            <div className="workspace-feature-footer">
-              4 simulated scenarios · No live connection required
-            </div>
-          </div>
-
-          <div className="workspace-side-stack">
-            <div className="workspace-profile-card">
-              <div className="workspace-card-label">YOUR ACCOUNT</div>
-
-              <div className="workspace-profile-row">
-                {currentUser?.photoURL ? (
-                  <img
-                    src={currentUser.photoURL}
-                    alt="Profile"
-                    className="workspace-avatar"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <div className="workspace-avatar-fallback">
-                    {displayName.charAt(0).toUpperCase()}
-                  </div>
-                )}
-
-                <div>
-                  <strong>{displayName}</strong>
-                  <span>{currentUser?.email || "No email"}</span>
-                </div>
-              </div>
-
-              <div className="workspace-account-status">
-                <span className="workspace-status-indicator" />
-                Authenticated with Firebase
-              </div>
-            </div>
-
-            <div className="workspace-history-card">
-              <div className="workspace-card-label">RECENT INVESTIGATIONS</div>
-              <Link to="/dashboard/investigations">View all investigations →</Link>
-
-              {historyLoading ? (
-                <p style={{ marginTop: 28 }}>Loading your investigations...</p>
-              ) : historyError ? (
-                <p role="alert" style={{ marginTop: 28 }}>
-                  {historyError}
-                </p>
-              ) : investigations.length === 0 ? (
-                <>
-                  <div className="workspace-empty-icon">◎</div>
-                  <h3>No investigations yet.</h3>
-                  <p>Save a demo scenario to see it here.</p>
-                </>
-              ) : (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 12,
-                    marginTop: 24,
-                    textAlign: "left",
-                  }}
-                >
-                  {investigations.slice(0, 5).map((item) => (
-                    <Link
-                      key={item.id}
-                      to={`/dashboard/investigations/${item.id}`}
-                      style={{
-                        display: "block",
-                        padding: 15,
-                        background: "#f8f6f1",
-                        border: "1px solid #eae6de",
-                        borderRadius: 12,
-                        textDecoration: "none",
-                        color: "inherit",
-                        transition: "border-color 0.2s",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          gap: 10,
-                        }}
-                      >
-                        <strong
-                          style={{
-                            fontSize: 13,
-                            color: "#292b29",
-                          }}
-                        >
-                          {item.title || "Untitled investigation"}
-                        </strong>
-
-                        <span
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 800,
-                            color: "#e86b4d",
-                          }}
-                        >
-                          {item.source === "demo" ? "DEMO" : item.source === "live" ? "LIVE" : "UNKNOWN"}
-                        </span>
-                      </div>
-
-                      <p
-                        style={{
-                          margin: "8px 0 0",
-                          fontSize: 11,
-                          color: "#8b8a83",
-                        }}
-                      >
-                        {formatTimestamp(item.createdAt)}
-                      </p>
-
-                      <p
-                        style={{
-                          margin: "5px 0 0",
-                          fontSize: 11,
-                          color: "#8b8a83",
-                        }}
-                      >
-                        Scenario: {item.scenarioId || "Unknown"}
-                      </p>
-                    </Link>
-                  ))}
-
-                  {investigations.length > 5 && (
-                    <p>
-                      Showing 5 of {investigations.length} saved investigations.
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-
-        {error && (
-          <p className="workspace-error" role="alert">
-            {error}
-          </p>
-        )}
+        <div className="dashboard-bottom-grid">
+          <section id="live-status" className="dashboard-panel" tabIndex={-1} aria-labelledby="live-title"><p className="dashboard-eyebrow">CONNECTION STATUS</p><h2 id="live-title">Live monitoring is not connected</h2><p>Backend availability has not been checked. A secure live integration is not configured in this workspace.</p><dl className="dashboard-connection"><div><dt>Telemetry</dt><dd>Not receiving</dd></div><div><dt>Last successful collection</dt><dd>Not available</dd></div></dl><p className="dashboard-muted">The Ubuntu VM must be running for future live monitoring. Demo scenarios are simulated and do not indicate network health.</p></section>
+          <AccountCard user={currentUser} displayName={displayName} />
+        </div>
+        <footer className="dashboard-footer">NETSCOPE · Evidence-based network intelligence<span>Saved hypotheses are not confirmed faults.</span></footer>
       </main>
-
-      <footer className="workspace-footer">
-        <span>NETSCOPE © 2026</span>
-        <span>Evidence-based network intelligence</span>
-      </footer>
     </div>
-  );
+  </div>;
+}
+function WorkspaceData({ onRefresh }) {
+  const [counts, setCounts] = useState(null);
+  const [countError, setCountError] = useState("");
+  const [recent, setRecent] = useState(null);
+  const [recentError, setRecentError] = useState("");
+  useEffect(() => {
+    let active = true;
+    loadWorkspaceCounts().then((result) => { if (active) setCounts(result); }).catch((error) => { if (active) setCountError(historyError(error)); });
+    const unsubscribe = subscribeRecentInvestigations((result) => { if (active) { setRecent(result); setRecentError(""); } }, (error) => { if (active) setRecentError(historyError(error)); });
+    return () => { active = false; unsubscribe(); };
+  }, []);
+  const loading = (!counts && !countError) || (!recent && !recentError);
+  return <>
+    <section aria-labelledby="summary-title">
+      <div className="dashboard-section-heading"><div><h2 id="summary-title">Workspace overview</h2><p>{counts ? `Counts checked ${counts.checkedAt.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}. Refresh to update.` : "Counts include all saved records, including legacy reports."}</p></div><button onClick={onRefresh} disabled={loading}><RefreshCw size={15} />{loading ? "Loading…" : "Refresh workspace"}</button></div>
+      <div className="dashboard-metrics" aria-busy={!counts && !countError}>{[["Saved investigations", "total", "All sources, including unclassified records"], ["Demo investigations", "demo", "Saved simulated scenarios"], ["Live investigations", "live", "Saved live snapshots, not active monitoring"]].map(([label,key,caption]) => <div className="dashboard-metric" key={key}><span>{label}</span>{counts ? <strong>{counts[key]}</strong> : countError ? <strong aria-label="Count unavailable">—</strong> : <span className="dashboard-skeleton" aria-label="Loading count" />}<small>{caption}</small></div>)}</div>
+      {countError && <p role="alert" className="dashboard-error">Counts unavailable. {countError}</p>}
+    </section>
+    <section className="dashboard-panel dashboard-recent" aria-labelledby="recent-title" aria-busy={!recent && !recentError}>
+      <div className="dashboard-section-heading"><div><h2 id="recent-title">Recent investigations</h2><p>Up to five latest dated reports. Undated legacy records remain in My Investigations.</p></div><Link to="/dashboard/investigations">View all <ArrowUpRight size={15} /></Link></div>
+      {recentError ? <p className="dashboard-error" role="alert">Recent reports unavailable. {recentError}</p> : !recent ? <div role="status" className="dashboard-loading"><p>Loading recent reports…</p><div className="dashboard-skeleton" /><div className="dashboard-skeleton" /></div> : <>
+        {recent.cached && <p className="dashboard-cache" role="status">Showing cached history; waiting for server confirmation. This may be incomplete.</p>}
+        {recent.records.length ? <ul className="dashboard-recent-list">{recent.records.map((record) => <li key={record.id}><Link to={`/dashboard/investigations/${record.id}`}><div><h3>{titleOf(record)}</h3><p>{savedTime(record) === null ? "Save date not recorded" : new Date(savedTime(record)).toLocaleString()}</p></div><span className="dashboard-source">{sourceOf(record) === "demo" ? "Demo · simulated" : sourceOf(record) === "live" ? "Live · saved" : "Source unknown"}</span><ArrowUpRight size={18} aria-hidden="true" /></Link></li>)}</ul> : counts?.total === 0 && !recent.cached ? <div className="dashboard-onboarding"><h3>Start with one investigation.</h3><ol><li>Open a simulated network scenario.</li><li>Review its evidence and suspected causes.</li><li>Save the snapshot to build your investigation history.</li></ol><Link to="/demo">Explore your first scenario →</Link></div> : <div className="dashboard-onboarding"><h3>No dated reports available</h3><p>Your archive may contain older metadata-only records. Open My Investigations to see all saved records.</p><Link to="/dashboard/investigations">Open archive →</Link></div>}
+      </>}
+    </section>
+  </>;
+}
+function AccountCard({ user, displayName }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const providers = user.providerData?.map((provider) => provider.providerId) || [];
+  const method = [providers.includes("google.com") && "Google", providers.includes("password") && "Email/password"].filter(Boolean).join(" · ") || "Authenticated account";
+  return <section className="dashboard-panel" aria-labelledby="account-title"><p className="dashboard-eyebrow">YOUR ACCOUNT</p><h2 id="account-title">Signed in securely</h2><div className="workspace-profile-row">{user.photoURL && !imageFailed ? <img src={user.photoURL} className="workspace-avatar" alt="" referrerPolicy="no-referrer" onError={() => setImageFailed(true)} /> : <div className="workspace-avatar-fallback" aria-hidden="true">{displayName.charAt(0).toUpperCase()}</div>}<div><strong>{displayName}</strong><span>{user.email || "Email not provided"}</span></div></div><dl className="dashboard-connection"><div><dt>Sign-in method</dt><dd>{method}</dd></div>{user.email && <div><dt>Email status</dt><dd>{user.emailVerified ? "Verified" : "Not verified"}</dd></div>}</dl><p className="dashboard-muted">Your investigation archive belongs to this account.</p></section>;
 }

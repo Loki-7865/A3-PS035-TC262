@@ -1,8 +1,8 @@
 # NETSCOPE progress — 26 October 2026
 
 ## Current milestone
-Dedicated protected My Investigations page implemented at `/dashboard/investigations`.
-Next phase: dashboard navigation and operational polish.
+My Investigations and Phase A dashboard navigation/operational polish are implemented.
+Next phase: demo enhancements. Git commits and push await user approval.
 The existing working tree was preserved when resuming verification. Nothing committed,
 pushed, deployed, or deleted from production.
 
@@ -84,9 +84,62 @@ These files are outside the production entry point and are not copied by Vite bu
   revisiting/reloading. Local deletion updates immediately after server success.
 - Search/sort become archive-wide only after all batches are loaded; no backend
   full-text index is present. Full snapshots are downloaded with each batch.
-- Dashboard still needs a bounded recent-history listener and aggregate counts.
+- Dashboard now uses a five-document listener and aggregate counts; see Phase A below.
 - Rules must be checked/tested in an authorized Firebase emulator/project before
   claiming deployed owner isolation. Frontend path checks are not a security boundary.
-- Next: dashboard polish, demo refinements and secure read-only Live
+- Next: demo refinements and secure read-only Live
   Mode; route splitting to address the bundle warning. No live API/public deployment
   before authentication/authorization and privileged-route isolation are implemented.
+
+
+## Phase A — Dashboard navigation and operational polish
+
+### Implemented
+- Responsive sidebar/navigation with Overview, My Investigations, Demo lab and Live
+  connection status; visible navigation on mobile and a keyboard skip link.
+- Quick actions for the public demo, saved investigations and live availability.
+- Five newest dated investigations in a cleaned-up report list, with View All.
+  Undated legacy reports remain accessible in the archive and are counted in totals.
+- Firestore aggregate queries for total/Demo/Live counts. No history-wide document
+  download. Source-less records are included in total, not invented as Live records.
+- Counts are server reads on entry/Refresh workspace, with the check time displayed.
+  They are not advertised as a continuously synchronized transactional snapshot.
+- Recent reports retain a bounded real-time listener and show cached-data provenance.
+- Independent count/list errors, refresh/retry, skeletons, empty/legacy onboarding.
+- Account provider and email-verification information, broken-photo initials fallback,
+  logout progress/repeat-submit guard and error recovery.
+- Live action goes to the actual disconnected status panel, not an unimplemented
+  route. Backend availability is explicitly not checked, no telemetry is fabricated,
+  and no privileged Flask endpoint is called.
+
+### Files for this phase
+- Created: `frontend/src/services/dashboard.js`, `frontend/src/styles/Dashboard.css`,
+  `frontend/tests/dashboard.test.mjs`.
+- Updated: `frontend/src/pages/UserDashboard.jsx`, fixture server/viewport harness,
+  and this progress document. Existing investigations changes remain intact.
+
+### Verification on 26 October 2026
+- Lint: PASS, exit 0, no errors/warnings.
+- Frontend tests: PASS, 13 total (9 existing + 4 dashboard service tests), 0 failures.
+  New coverage: aggregate owner paths and all-record totals, five-document listener,
+  cache metadata, cleanup, permission failures and session-switch protection.
+- Build: PASS, 1971 modules, JS 927.06 kB (279.46 kB gzip), CSS 66.05 kB.
+  Existing >500 kB bundle warning remains; not suppressed.
+- Python tests: PASS, 2 tests. `git diff --check`: PASS.
+- Synthetic browser checks: populated metrics/five reports, broken image fallback,
+  new-user onboarding, legacy-only archive messaging, count failure/retry, recent-list
+  failure with working counts, cached empty data, logout failure and success routing
+  to `/login`, Live status anchor. All PASS.
+- Viewports: 320/390/768/1280 px checked; content width matched client width with no
+  horizontal document overflow. Mobile and desktop layouts visually inspected.
+- Production sign-in, Firestore aggregate permissions and deployed security rules
+  remain unverified; UI checks use fixtures with no production data access.
+- Test fixture server stopped after checks; other development servers untouched.
+
+### Next actions and Git approval
+User requested approval before every feature commit/push. No commit/push performed.
+Proposed feature commits: (1) saved investigation management and baseline lint fixes;
+(2) dashboard navigation, bounded queries and operational polish. Ask approval for
+these commits and push to `origin/main` before executing Git mutations.
+After approval/verification, proceed to Phase B demo enhancements; preserve exact
+snapshot saving, scenario-transition safety and explicit simulated-data labeling.
