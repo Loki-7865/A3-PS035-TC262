@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/authState";
 import { saveInvestigation } from "../services/investigations";
 
 export default function SaveInvestigation({ scenario }) {
@@ -57,6 +57,8 @@ export default function SaveInvestigation({ scenario }) {
             ? "✓ Investigation saved"
             : "Save investigation ↗"}
       </button>
+
+      {saved && <p role="status"><Link to="/dashboard/investigations">View My Investigations →</Link></p>}
 
       {error && (
         <p role="alert" style={{ color: "#b13f2d", fontSize: "12px" }}>

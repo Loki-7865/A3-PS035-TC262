@@ -1,6 +1,6 @@
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 
-import { db } from "./firebase";
+import { db } from "./firebase.js";
 
 export async function saveInvestigation(user, scenarioData) {
   if (!user?.uid) {
@@ -15,7 +15,7 @@ export async function saveInvestigation(user, scenarioData) {
     throw new Error("Invalid investigation data.");
   }
 
-  const { scenario, telemetry, topology, diagnosis, evidence, incidents } =
+  const { scenario, telemetry, topology, diagnosis, evidence = [], incidents } =
     scenarioData;
 
   if (

@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 import { db } from "../services/firebase";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/authState";
 
 import "../styles/UserDashboard.css";
 import "../styles/InvestigationDetails.css";
@@ -84,8 +84,6 @@ export default function InvestigationDetails() {
 
   useEffect(() => {
     if (!currentUser?.uid || !investigationId) {
-      setLoading(false);
-      setRecord(null);
       return;
     }
 
@@ -171,7 +169,7 @@ export default function InvestigationDetails() {
       </header>
 
       <main className="report-main">
-        <Link to="/dashboard" className="report-back-link">
+        <Link to="/dashboard/investigations" className="report-back-link">
           <ArrowLeft size={15} />
           Back to investigations
         </Link>

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/authState";
 import { db } from "../services/firebase";
 import "../styles/UserDashboard.css";
 
@@ -23,8 +23,6 @@ export default function UserDashboard() {
 
   useEffect(() => {
     if (!currentUser?.uid) {
-      setInvestigations([]);
-      setHistoryLoading(false);
       return;
     }
 
@@ -98,6 +96,7 @@ export default function UserDashboard() {
         </Link>
 
         <div className="workspace-header-actions">
+          <Link to="/dashboard/investigations" className="workspace-demo-link">My Investigations</Link>
           <Link to="/demo" className="workspace-demo-link">
             Open Demo
           </Link>
@@ -221,6 +220,7 @@ export default function UserDashboard() {
 
             <div className="workspace-history-card">
               <div className="workspace-card-label">RECENT INVESTIGATIONS</div>
+              <Link to="/dashboard/investigations">View all investigations →</Link>
 
               {historyLoading ? (
                 <p style={{ marginTop: 28 }}>Loading your investigations...</p>
@@ -283,7 +283,7 @@ export default function UserDashboard() {
                             color: "#e86b4d",
                           }}
                         >
-                          {item.source === "demo" ? "DEMO" : "LIVE"}
+                          {item.source === "demo" ? "DEMO" : item.source === "live" ? "LIVE" : "UNKNOWN"}
                         </span>
                       </div>
 

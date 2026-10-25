@@ -13,7 +13,6 @@ import {
   ShieldAlert,
   Database,
   Info,
-  Play,
   Zap,
   X,
   ChevronRight,
@@ -148,7 +147,6 @@ function App() {
     return () => controller.abort();
   }, [scenarioId, reload]);
 
-  const scenario = SCENARIOS.find((s) => s.id === scenarioId);
   const routers = data?.telemetry?.routers ?? [];
   const findings = data?.diagnosis?.findings ?? [];
   const causes = data?.diagnosis?.candidate_root_causes ?? [];

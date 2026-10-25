@@ -7,6 +7,7 @@ import Signup from "./pages/Signup";
 import Login from "./pages/Login";
 
 import UserDashboard from "./pages/UserDashboard";
+import Investigations from "./pages/Investigations";
 import InvestigationDetails from "./pages/InvestigationDetails";
 
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -33,6 +34,8 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route path="/dashboard/investigations" element={<ProtectedRoute><Investigations /></ProtectedRoute>} />
 
         <Route
           path="/dashboard/investigations/:investigationId"

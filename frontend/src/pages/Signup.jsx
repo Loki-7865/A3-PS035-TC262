@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { updateProfile } from "firebase/auth";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/authState";
 
 export default function Signup() {
   const navigate = useNavigate();

@@ -7,8 +7,6 @@ import {
   ArrowRight,
   ShieldCheck,
   GitBranch,
-  AlertTriangle,
-  CheckCircle2,
   Radar,
   Route,
   Menu,
