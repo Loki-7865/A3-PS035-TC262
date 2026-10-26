@@ -1,10 +1,11 @@
 # NETSCOPE progress — 26 October 2026
 
 ## Current milestone
-My Investigations and Phase A dashboard navigation/operational polish are implemented.
-Next phase: demo enhancements. Git commits and push await user approval.
-The existing working tree was preserved when resuming verification. Nothing committed,
-pushed, deployed, or deleted from production.
+My Investigations and Phase A are committed and pushed. Phase B demo enhancements
+are implemented and verified; Phase B commit/push await user approval.
+Next development phase: secure Live Mode architecture.
+Existing work was preserved throughout. No production records were deleted and no
+deployment was performed. See the Git milestones below for approved commits.
 
 ## Architecture audit
 - Existing React/Vite frontend: public landing/demo, Firebase Auth session provider,
@@ -136,10 +137,68 @@ These files are outside the production entry point and are not copied by Vite bu
   remain unverified; UI checks use fixtures with no production data access.
 - Test fixture server stopped after checks; other development servers untouched.
 
-### Next actions and Git approval
-User requested approval before every feature commit/push. No commit/push performed.
-Proposed feature commits: (1) saved investigation management and baseline lint fixes;
-(2) dashboard navigation, bounded queries and operational polish. Ask approval for
-these commits and push to `origin/main` before executing Git mutations.
-After approval/verification, proceed to Phase B demo enhancements; preserve exact
-snapshot saving, scenario-transition safety and explicit simulated-data labeling.
+### Git milestones
+- User explicitly approved separate feature commits and push to `origin/main`.
+- `b5a34ba`: feat: add saved investigation management.
+- `d77a420`: feat: polish dashboard navigation and operational summaries.
+- Push succeeded: `14e3ea9..d77a420 main -> main`; local origin/main also resolves
+  to d77a42045ce181e4edac9714e2f783b65134b2de. No force push or history rewriting.
+- Phase B below remains uncommitted; approval required before its commit/push.
+
+## Phase B — Demo enhancements
+
+### Completed
+- Added independent static scenario loader and request-keyed hook. Changes and reloads
+  invalidate old data during render, before effects; aborted responses cannot replace
+  the selected snapshot. Failed/loading requests cannot show false healthy results.
+- Reset to healthy and reload controls clear selection; provenance explains that reload
+  reads a prerecorded fixture, not fresh diagnosis/telemetry. Missing timestamps stay
+  unavailable. All four JSON fixtures and schemas are unchanged.
+- Router nodes and links support keyboard and pointer inspection. Wider SVG hit targets,
+  selected-state cues, focus on inspection, focus return on close, and corrected node/link
+  geometry improve usability. Mobile status labels remain visible, not color-only.
+- Router context exposes recorded collection status, findings, adjacent links and cited
+  peer evidence. Link context distinguishes recorded physical/BGP state; absent details
+  are not inferred as facts.
+- Selected evidence is highlighted in the full timeline using direct associations and
+  explicit evidence IDs. Multiple faults keep their evidence/hypotheses separate.
+- Findings distinguish physical observations, routing observations, and possible downstream
+  BGP symptoms where a physical-link hypothesis exists. No invented confidence scores.
+- Subtle selection/hover transitions and reduced-motion support; no invented traffic.
+- Save uses the exact clicked snapshot, guards repeated submissions, handles permission
+  failures, and links directly to the saved report. Old completion feedback is discarded
+  after scenario/session changes. Public users are directed to login before saving.
+
+### Files
+Created: `frontend/src/services/demoScenarios.js`, `frontend/src/hooks/useDemoScenario.js`,
+`frontend/src/styles/DemoEnhancements.css`, `frontend/tests/demo.test.mjs`.
+Modified: DemoDashboard, SaveInvestigation, isolated fixture/viewport harness, this log.
+
+### Final checks
+- `npm --prefix frontend run lint`: PASS, exit 0, no errors/warnings.
+- `npm --prefix frontend test`: PASS, 19 tests, 0 failed/skipped (six new demo tests).
+  Node experimental module-mocking notice remains.
+- `npm --prefix frontend run build`: PASS, 1974 modules. JS 931.90 kB (280.82 kB gzip),
+  CSS 68.89 kB. Existing >500 kB bundle warning remains and is not suppressed.
+- `python3 -m unittest discover -s tests`: PASS, 2 tests.
+- `git diff --check`: PASS.
+- Browser fixtures: all four scenarios rendered; rapid switching, delayed reload hiding
+  old snapshots/disabled Save, keyboard link/router inspection, map pointer hit targets,
+  selected evidence counts, router peer evidence, close focus, reset, HTTP 503 failure,
+  recovery, public demo/login navigation, permission-denied save/retry and saved report
+  link all PASS. Multiple faults: physical link highlights five evidence records;
+  routing context has six. Successful save during reset retained multiple_faults and
+  eleven evidence records, one request; no stale saved badge on the new scenario.
+- Responsive checks: 320/390/768/1280 px, no horizontal document overflow; mobile
+  topology visually reviewed. R4/R5 spacing and link-to-node alignment corrected.
+- UI save tests use an in-memory fixture service. Production Firebase writes, deployed
+  rules and real authentication remain unverified. No VM/Docker/privileged API calls.
+- Fixture server stopped after checks. Existing development servers left untouched.
+
+### Remaining limitations / next step
+- Existing login flow still lands on the dashboard; returning directly to a selected
+  scenario after sign-in is a future authentication-flow refinement.
+- Phase B does not add live telemetry. Secure Live Mode must first add server-side token
+  verification/authorization and isolate privileged refresh from the public API.
+- Request approval for `feat: enhance demo inspection and snapshot safety` and push to
+  `origin/main`. Do not commit/push Phase B without that approval.

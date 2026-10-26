@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Activity,
   ArrowRight,
@@ -22,7 +22,11 @@ import {
   Search,
   ShieldCheck,
 } from "lucide-react";
+import { Link } from "react-router";
+import { useDemoScenario } from "./hooks/useDemoScenario";
+import { findingCategory, investigationContext } from "./services/demoScenarios";
 import "./App.css";
+import "./styles/DemoEnhancements.css";
 import SaveInvestigation from "./components/SaveInvestigation";
 
 const SCENARIOS = [
@@ -68,7 +72,7 @@ const POSITIONS = {
   R1: { x: 115, y: 75 },
   R2: { x: 340, y: 75 },
   R3: { x: 115, y: 225 },
-  R4: { x: 560, y: 150 },
+  R4: { x: 560, y: 110 },
   R5: { x: 560, y: 225 },
 };
 
@@ -95,57 +99,20 @@ function formatDate(value) {
 
 function App() {
   const [scenarioId, setScenarioId] = useState("healthy");
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [selectedLink, setSelectedLink] = useState(null);
   const [view, setView] = useState("overview");
   const [reload, setReload] = useState(0);
 
+  const { data, loading, error } = useDemoScenario(scenarioId, reload);
+  const [selectedRouter, setSelectedRouter] = useState(null);
+  const inspection = useRef(null);
+  const topologyHeading = useRef(null);
+  const [inspectionRequest, setInspectionRequest] = useState(0);
   useEffect(() => {
-    const controller = new AbortController();
-
-    async function load() {
-      setLoading(true);
-      setError("");
-
-      try {
-        const response = await fetch(
-          `${import.meta.env.BASE_URL}demo/scenarios/${scenarioId}.json`,
-          { signal: controller.signal, cache: "no-store" },
-        );
-
-        if (!response.ok) {
-          throw new Error(`Scenario unavailable: HTTP ${response.status}`);
-        }
-
-        const result = await response.json();
-
-        if (
-          result.scenario?.id !== scenarioId ||
-          !Array.isArray(result.telemetry?.routers) ||
-          !Array.isArray(result.diagnosis?.findings) ||
-          !Array.isArray(result.diagnosis?.candidate_root_causes) ||
-          !Array.isArray(result.topology?.links) ||
-          !Array.isArray(result.incidents)
-        ) {
-          throw new Error("Scenario data has an invalid structure.");
-        }
-
-        setData(result);
-      } catch (err) {
-        if (err.name !== "AbortError") {
-          setError(err.message);
-          setData(null);
-        }
-      } finally {
-        if (!controller.signal.aborted) setLoading(false);
-      }
-    }
-
-    load();
-    return () => controller.abort();
-  }, [scenarioId, reload]);
+    if (!selectedLink && !selectedRouter) return;
+    inspection.current?.focus({ preventScroll: true });
+    inspection.current?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
+  }, [selectedLink, selectedRouter, inspectionRequest]);
 
   const routers = data?.telemetry?.routers ?? [];
   const findings = data?.diagnosis?.findings ?? [];
@@ -178,25 +145,26 @@ function App() {
     (r) => routerStatus(r.router.toUpperCase()) === "healthy",
   ).length;
 
-  const selectedEvidence = evidence.filter(
-    (item) => item.link === selectedLink,
-  );
-
-  const selectedCauses = causes.filter(
-    (cause) => (cause.suspected_link || cause.candidate_link) === selectedLink,
-  );
-
+  const context = investigationContext(data, { link: selectedLink, router: selectedRouter });
+  const selectedEvidence = context.evidence;
+  const selectedCauses = context.causes;
   const selectedInfo = links.find((link) => link.id === selectedLink);
+  const highlightedEvidence = new Set(selectedEvidence.map(item => item.id));
+  const displayLinks = links.map(link => ({ ...LINKS.find(item => item.id === link.id), ...link }));
 
+  function clearSelection() { setSelectedLink(null); setSelectedRouter(null); }
   function changeScenario(id) {
     setScenarioId(id);
-    setSelectedLink(null);
+    clearSelection();
     setView("overview");
   }
-
+  function reloadScenario() { clearSelection(); setReload(n => n + 1); }
+  function resetScenario() { changeScenario("healthy"); setReload(n => n + 1); }
   function openLink(id) {
-    setSelectedLink(id);
-    setView("investigation");
+    setSelectedRouter(null); setSelectedLink(id); setView("investigation"); setInspectionRequest(value => value + 1);
+  }
+  function openRouter(name) {
+    setSelectedLink(null); setSelectedRouter(name); setView("investigation"); setInspectionRequest(value => value + 1);
   }
 
   const labelStyle = {
@@ -207,7 +175,7 @@ function App() {
   };
 
   return (
-    <div className="app-shell">
+    <div className="app-shell demo-page">
       <aside className="sidebar">
         <div className="brand">
           <div className="brand-mark">
@@ -221,7 +189,8 @@ function App() {
 
         <p className="sidebar-label">WORKSPACE</p>
 
-        <nav className="navigation">
+        <nav className="navigation" aria-label="Demo navigation">
+          <Link className="nav-item" to="/dashboard">My workspace <ArrowUpRight size={16} /></Link>
           {[
             ["overview", Activity, "Overview"],
             ["topology", GitBranch, "Topology"],
@@ -268,14 +237,16 @@ function App() {
             </p>
           </div>
 
+          <div className="demo-controls"><button className="refresh-button" onClick={resetScenario}>Reset to healthy</button>
           <button
             className="refresh-button"
-            onClick={() => setReload((n) => n + 1)}
+            onClick={reloadScenario}
             disabled={loading}
           >
             <RefreshCw size={17} className={loading ? "spin" : ""} />
             {loading ? "Loading..." : "Reload scenario"}
           </button>
+          </div>
         </header>
 
         <div
@@ -345,7 +316,7 @@ function App() {
               margin: "23px 0 12px",
             }}
           >
-            Break the network.
+            Explore a network failure.
             <br />
             <span style={{ color: "#f5a47e" }}>Follow the evidence.</span>
           </h3>
@@ -544,12 +515,15 @@ function App() {
           </div>
         )}
 
+        {loading && <p className="demo-loading" role="status">Loading recorded scenario… Previous observations are hidden until this snapshot is ready.</p>}
+        {data && <>
+        <div className="demo-provenance" role="status"><strong>{data.scenario.name || data.scenario.id}</strong><span>Recorded telemetry: {formatDate(data.telemetry.collected_at)}</span><span>Prerecorded diagnosis · Reload reads the same fixture; no live analysis runs.</span></div>
         <section className="stats-grid" style={{ marginTop: 25 }}>
           <Metric
             icon={Router}
             title="NETWORK DEVICES"
             value={routers.length}
-            detail="Monitored routers"
+            detail="Routers in this recorded snapshot"
           />
           <Metric
             icon={CheckCircle2}
@@ -578,16 +552,18 @@ function App() {
           <div className="section-heading">
             <div>
               <div style={labelStyle}>02 / EXPLORE</div>
-              <h3 style={{ marginTop: 8 }}>The network, visualized.</h3>
-              <p>Click any connection to investigate its state.</p>
+              <h3 ref={topologyHeading} tabIndex={-1} style={{ marginTop: 8 }}>The network, visualized.</h3>
+              <p>Select a router or connection to inspect recorded observations. Keyboard access is available on the map and link list.</p>
             </div>
             <div className="legend">
               <span>
                 <i className="legend-green" /> Healthy
               </span>
               <span>
-                <i className="legend-red" /> Fault
+                <i className="legend-red" /> Failed
               </span>
+              <span><i style={{ background: COLORS.amber }} /> Degraded / routing</span>
+              <span><i style={{ background: "#888" }} /> Unknown</span>
             </div>
           </div>
 
@@ -597,9 +573,10 @@ function App() {
                 className="topology-lines"
                 viewBox="0 0 700 300"
                 preserveAspectRatio="none"
+                role="group"
                 aria-label="Network topology"
               >
-                {LINKS.map((link) => {
+                {displayLinks.map((link) => {
                   const a = POSITIONS[link.a];
                   const b = POSITIONS[link.b];
                   const status = linkStatus(link.id);
@@ -612,9 +589,12 @@ function App() {
                           ? "#83bb8d"
                           : "#a8a8a1";
 
+                  if (!a || !b) return null;
                   return (
+                    <g key={link.id} role="button" tabIndex={0} aria-label={`Inspect link ${link.id}: ${pretty(status)}`} aria-pressed={selectedLink === link.id} onClick={() => openLink(link.id)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openLink(link.id); } }}>
+                    <title>{link.id}: {pretty(status)}</title>
+                    <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} style={{ stroke: "transparent", strokeWidth: 18, pointerEvents: "stroke" }} />
                     <line
-                      key={link.id}
                       x1={a.x}
                       y1={a.y}
                       x2={b.x}
@@ -627,8 +607,8 @@ function App() {
                         cursor: "pointer",
                         pointerEvents: "stroke",
                       }}
-                      onClick={() => openLink(link.id)}
                     />
+                    </g>
                   );
                 })}
               </svg>
@@ -637,9 +617,12 @@ function App() {
                 const status = routerStatus(name);
 
                 return (
-                  <div
+                  <button
                     key={name}
                     className="router-node"
+                    onClick={() => openRouter(name)}
+                    aria-label={`Inspect router ${name}: ${pretty(status)}`}
+                    aria-pressed={selectedRouter === name}
                     style={{
                       left: `${(p.x / 700) * 100}%`,
                       top: `${(p.y / 300) * 100}%`,
@@ -665,19 +648,20 @@ function App() {
                           ? "Unknown"
                           : "Attention required"}
                     </span>
-                  </div>
+                  </button>
                 );
               })}
             </div>
 
             <div className="link-list">
-              {LINKS.map((link) => {
+              {displayLinks.map((link) => {
                 const status = linkStatus(link.id);
 
                 return (
                   <button
                     key={link.id}
                     className="link-chip"
+                    aria-pressed={selectedLink === link.id}
                     onClick={() => openLink(link.id)}
                   >
                     <span
@@ -714,17 +698,17 @@ function App() {
           </div>
         </section>
 
-        {selectedLink && (
-          <section id="investigation" className="section-block">
+        {(selectedLink || selectedRouter) && (
+          <section id="investigation" className="section-block demo-inspection" ref={inspection} tabIndex={-1} aria-label={`Investigation: ${selectedLink || selectedRouter}`}>
             <div className="section-heading">
               <div>
                 <div style={labelStyle}>03 / INVESTIGATE</div>
-                <h3 style={{ marginTop: 8 }}>Investigation: {selectedLink}</h3>
-                <p>Context and evidence for the selected connection.</p>
+                <h3 style={{ marginTop: 8 }}>Investigation: {selectedLink || selectedRouter}</h3>
+                <p>Context and evidence for this selection. Hypotheses are not confirmed faults.</p>
               </div>
               <button
                 className="refresh-button"
-                onClick={() => setSelectedLink(null)}
+                onClick={() => { clearSelection(); topologyHeading.current?.focus(); }}
               >
                 <X size={15} /> Close
               </button>
@@ -744,12 +728,12 @@ function App() {
                   className={`severity ${
                     linkStatus(selectedLink) === "failed"
                       ? "critical"
-                      : linkStatus(selectedLink) === "degraded"
+                      : (linkStatus(selectedLink) === "degraded" || (selectedRouter && routerStatus(selectedRouter) === "fault"))
                         ? "warning"
                         : "low"
                   }`}
                 >
-                  {pretty(linkStatus(selectedLink))}
+                  {pretty(selectedLink ? linkStatus(selectedLink) : routerStatus(selectedRouter))}
                 </span>
                 <span className="pill">
                   {selectedEvidence.length} Evidence records
@@ -759,7 +743,7 @@ function App() {
                 </span>
               </div>
 
-              <div
+              {selectedLink && <div
                 style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))",
@@ -778,13 +762,15 @@ function App() {
                   value={pretty(selectedInfo?.bgp_status || "Not specified")}
                 />
                 <Detail title="Link" value={selectedLink} />
-              </div>
+              </div>}
+              {selectedRouter && <div className="demo-router-context"><Detail title="Telemetry collection" value={routers.find(router => router.router?.toUpperCase() === selectedRouter)?.healthy_collection ? "Recorded successfully" : "Unknown or incomplete"} /><Detail title="Router findings" value={context.findings.length} /><p>Adjacent recorded links</p>{context.links.map(link => <button key={link.id} className="link-chip" onClick={() => openLink(link.id)}>{link.id} · {pretty(link.status)}</button>)}</div>}
+              <p className="demo-context-note">Evidence includes direct observations and records explicitly cited by associated findings or hypotheses. Router context can include observations from peer routers.</p>
 
               <h4>What the evidence suggests</h4>
 
               {selectedCauses.length === 0 ? (
                 <p style={{ color: COLORS.muted, fontSize: 13 }}>
-                  No root-cause hypothesis is recorded for this connection.
+                  No root-cause hypothesis is recorded for this selection.
                 </p>
               ) : (
                 selectedCauses.map((cause) => (
@@ -848,7 +834,7 @@ function App() {
                 />
               ) : (
                 findings.map((item, i) => (
-                  <div className="finding-row" key={item.id || i}>
+                  <div className={`finding-row ${context.findings.some(finding => finding.id === item.id) ? "demo-highlight" : ""}`} key={item.id || i}>
                     <div className="finding-icon">
                       <AlertTriangle size={19} />
                     </div>
@@ -863,6 +849,7 @@ function App() {
                         {item.message ||
                           `Abnormal observation on ${item.link || item.router}.`}
                       </p>
+                      <span className="demo-category">{findingCategory(item, causes)}</span>
                       <span className="finding-meta">
                         {item.router} · {item.link || "Router finding"}
                       </span>
@@ -905,11 +892,7 @@ function App() {
                       style={{ width: "100%" }}
                       onClick={() => {
                         openLink(cause.suspected_link || cause.candidate_link);
-                        setTimeout(() => {
-                          document
-                            .getElementById("investigation")
-                            ?.scrollIntoView({ behavior: "smooth" });
-                        }, 50);
+
                       }}
                     >
                       Investigate this connection
@@ -927,7 +910,7 @@ function App() {
             <div>
               <div style={labelStyle}>05 / TRACE</div>
               <h3 style={{ marginTop: 8 }}>The evidence trail.</h3>
-              <p>Every observation in chronological order.</p>
+              <p>Every observation in chronological order. Highlighted records support the selected router or link.</p>
             </div>
             <span className="pill">{evidence.length} observations</span>
           </div>
@@ -943,13 +926,13 @@ function App() {
               [...evidence]
                 .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
                 .map((item, i) => (
-                  <div className="finding-row" key={item.id || i}>
+                  <div className={`finding-row ${highlightedEvidence.has(item.id) ? "demo-highlight" : ""}`} key={item.id || i}>
                     <div className="finding-icon">
                       <Activity size={19} />
                     </div>
                     <div className="finding-content">
                       <div className="finding-title">
-                        <strong>{pretty(item.source)}</strong>
+                        <strong>{item.id} · {pretty(item.source)}</strong>
                         <span className="pill">{pretty(item.observation)}</span>
                       </div>
                       <p>{item.message}</p>
@@ -1115,6 +1098,7 @@ function App() {
                   </div>
                   <h4>{name}</h4>
                   <p className="router-subtitle">FRRouting / BGP</p>
+                  <button className="refresh-button" onClick={() => openRouter(name)}>Inspect {name}</button>
                   <div className="router-details">
                     <span>Findings</span>
                     <strong>{count}</strong>
@@ -1135,6 +1119,7 @@ function App() {
           </span>
           <span>SIMULATED DATA · NOT LIVE TELEMETRY</span>
         </footer>
+        </>}
       </main>
     </div>
   );

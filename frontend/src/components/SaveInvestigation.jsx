@@ -1,70 +1,47 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
-
 import { useAuth } from "../contexts/authState";
 import { saveInvestigation } from "../services/investigations";
 
 export default function SaveInvestigation({ scenario }) {
   const { currentUser } = useAuth();
-  const navigate = useNavigate();
+  return <SaveSnapshot key={currentUser?.uid || "public"} currentUser={currentUser} scenario={scenario} />;
+}
 
+function SaveSnapshot({ currentUser, scenario }) {
+  const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [savedId, setSavedId] = useState(null);
   const [error, setError] = useState("");
+  const pending = useRef(false);
+  const mounted = useRef(false);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
   async function handleSave() {
+    if (!scenario || pending.current || savedId) return;
     if (!currentUser) {
-      navigate("/login", {
-        state: { from: { pathname: "/demo" } },
-      });
+      navigate("/login", { state: { from: { pathname: "/demo" } } });
       return;
     }
-
-    setSaving(true);
-    setError("");
-
+    pending.current = true;
+    setSaving(true); setError("");
+    // The snapshot passed at click time is the one displayed, even if selection later changes.
+    const snapshot = scenario;
     try {
-      await saveInvestigation(currentUser, scenario);
-      setSaved(true);
+      const id = await saveInvestigation(currentUser, snapshot);
+      if (mounted.current) setSavedId(id);
     } catch (err) {
-      console.error("Save investigation failed:", err);
-      setError(`Save failed: ${err.code || err.message}`);
+      if (mounted.current) setError(err.code === "permission-denied" ? "Your account cannot save this investigation. Check your access and try again." : "Unable to save this snapshot. Please try again.");
     } finally {
-      setSaving(false);
+      pending.current = false;
+      if (mounted.current) setSaving(false);
     }
   }
-
-  return (
-    <div className="save-investigation">
-      <button
-        type="button"
-        onClick={handleSave}
-        disabled={saving || saved || !scenario}
-        style={{
-          background: saved ? "#e7f3ec" : "#f16d4e",
-          color: saved ? "#32805a" : "#ffffff",
-          border: "none",
-          borderRadius: "10px",
-          padding: "12px 18px",
-          fontSize: "12px",
-          fontWeight: 750,
-          cursor: saving || saved ? "default" : "pointer",
-        }}
-      >
-        {saving
-          ? "Saving..."
-          : saved
-            ? "✓ Investigation saved"
-            : "Save investigation ↗"}
-      </button>
-
-      {saved && <p role="status"><Link to="/dashboard/investigations">View My Investigations →</Link></p>}
-
-      {error && (
-        <p role="alert" style={{ color: "#b13f2d", fontSize: "12px" }}>
-          {error}
-        </p>
-      )}
-    </div>
-  );
+  return <div className="save-investigation">
+    <button className="demo-save-button" type="button" onClick={handleSave} disabled={saving || !!savedId || !scenario}>
+      {saving ? "Saving displayed snapshot…" : savedId ? "✓ Investigation saved" : currentUser ? "Save investigation ↗" : "Sign in to save ↗"}
+    </button>
+    {savedId && <p className="demo-save-feedback" role="status">Saved “{scenario?.scenario?.name || scenario?.scenario?.id}”. <Link to={`/dashboard/investigations/${savedId}`}>Open saved report</Link> · <Link to="/dashboard/investigations">My Investigations</Link></p>}
+    {error && <p role="alert" className="demo-save-error">{error}</p>}
+  </div>;
 }

@@ -8,8 +8,12 @@ const server = await createServer({
     name: 'isolated-investigations-fixture', enforce: 'pre',
     resolveId(id) { if (id === '/fixture.jsx') return '\0fixture.jsx'; },
     load(id) {
-      if (id === '\0fixture.jsx') return `import React from 'react'; import { createRoot } from 'react-dom/client'; import { BrowserRouter } from 'react-router'; import Investigations from '/src/pages/Investigations.jsx'; import Dashboard from '/src/pages/UserDashboard.jsx'; import '/src/index.css'; createRoot(document.getElementById('root')).render(React.createElement(BrowserRouter,null,React.createElement(new URLSearchParams(location.search).has('dashboard') ? Dashboard : Investigations)));`;
-      if (id.endsWith('/contexts/authState.js')) return `export const useAuth = () => ({currentUser:{uid:'synthetic-test-owner',displayName:'Test Operator',email:'operator@example.test',emailVerified:true,photoURL:'/fixture-missing-avatar.png',providerData:[{providerId:'google.com'}]},logout:async()=>{if(new URLSearchParams(location.search).has('logout-error')) throw Error('Fixture signout error');}});`;
+      if (id === '\0fixture.jsx') return `import React from 'react'; import { createRoot } from 'react-dom/client'; import { BrowserRouter } from 'react-router'; import Investigations from '/src/pages/Investigations.jsx'; import Dashboard from '/src/pages/UserDashboard.jsx'; import Demo from '/src/DemoDashboard.jsx'; import '/src/index.css'; createRoot(document.getElementById('root')).render(React.createElement(BrowserRouter,null,React.createElement(new URLSearchParams(location.search).has('dashboard') ? Dashboard : new URLSearchParams(location.search).has('demo') ? Demo : Investigations)));`;
+      if (id.endsWith('/contexts/authState.js')) return `export const useAuth = () => ({currentUser:new URLSearchParams(location.search).has('signedout')?null:{uid:'synthetic-test-owner',displayName:'Test Operator',email:'operator@example.test',emailVerified:true,photoURL:'/fixture-missing-avatar.png',providerData:[{providerId:'google.com'}]},logout:async()=>{if(new URLSearchParams(location.search).has('logout-error')) throw Error('Fixture signout error');}});`;
+      if (id.endsWith('/services/investigations.js')) return `
+        let calls=0;
+        export async function saveInvestigation(user,snapshot) { calls++; await new Promise(r=>setTimeout(r,500)); if(new URLSearchParams(location.search).has('save-error')) throw {code:'permission-denied'}; let output=document.getElementById('fixture-save'); if(!output){output=document.createElement('output');output.id='fixture-save';document.body.append(output);} output.textContent='Fixture saved: '+snapshot.scenario.id+'; calls: '+calls+'; evidence: '+(snapshot.evidence||[]).length; return 'synthetic-report'; }
+      `;
       if (id.endsWith('/services/dashboard.js')) return `
         const params = new URLSearchParams(location.search);
         let attempts=0;
@@ -25,7 +29,7 @@ const server = await createServer({
         export const historyError = () => 'Fixture: access denied. Please try again.';
       `;
     },
-    configureServer(server) { server.middlewares.use(async (req,res,next) => { if (req.url.split('?')[0] !== '/') return next(); res.setHeader('Content-Type','text/html'); res.end(await server.transformIndexHtml(req.url, '<html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div id="root"></div><script type="module" src="/@vite/client"></script><script type="module" src="/fixture.jsx"></script></body></html>')); }); },
+    configureServer(server) { server.middlewares.use(async (req,res,next) => { if(req.url.startsWith('/demo/scenarios/')) { const referer=new URL(req.headers.referer||'http://localhost'); if(referer.searchParams.has('demo-error') && req.url.includes('bgp_failure')) {res.statusCode=503;res.end('Synthetic failure');return;} if(referer.searchParams.has('slow')) await new Promise(r=>setTimeout(r,req.url.includes('link_failure')?2000:1200)); return next(); } if (req.url.split('?')[0] !== '/') return next(); res.setHeader('Content-Type','text/html'); res.end(await server.transformIndexHtml(req.url, '<html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div id="root"></div><script type="module" src="/@vite/client"></script><script type="module" src="/fixture.jsx"></script></body></html>')); }); },
   }, react()], server:{host:'127.0.0.1',port:5180,strictPort:true},
 });
 await server.listen(); server.printUrls();
