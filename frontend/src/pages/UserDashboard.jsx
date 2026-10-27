@@ -42,9 +42,9 @@ function DashboardWorkspace() {
           <NavLink to="/dashboard" end><LayoutDashboard size={18} />Overview</NavLink>
           <NavLink to="/dashboard/investigations"><FolderSearch size={18} />My Investigations</NavLink>
           <Link to="/demo"><Network size={18} />Demo lab</Link>
-          <a href="#live-status"><Radio size={18} />Live monitoring</a>
+          <NavLink to="/dashboard/live"><Radio size={18} />Live monitoring</NavLink>
         </nav>
-        <div className="dashboard-sidebar-note"><span className="dashboard-offline-dot" />Live not connected<p>Your saved reports and demo remain available without the network lab.</p></div>
+        <div className="dashboard-sidebar-note"><span className="dashboard-offline-dot" />Live status not checked<p>Your saved reports and demo remain available without the network lab.</p></div>
       </aside>
       <main id="dashboard-content" className="dashboard-main" tabIndex={-1}>
         <div className="dashboard-intro"><p className="dashboard-eyebrow">NETWORK INVESTIGATION WORKSPACE</p><h1>Welcome back, <span>{displayName.split(/\s+/)[0]}.</span></h1><p>Review the evidence. Pick up an investigation. Keep uncertainty visible.</p></div>
@@ -53,10 +53,10 @@ function DashboardWorkspace() {
         <section className="dashboard-quick-actions" aria-label="Quick actions">
           <Link to="/demo" className="dashboard-demo-action"><Network size={23} /><h2>Explore the demo lab</h2><p>Inspect simulated faults and save the evidence for later.</p><span>Launch demo <ArrowUpRight size={16} /></span></Link>
           <Link to="/dashboard/investigations"><FolderSearch size={23} /><h2>My Investigations</h2><p>Search your archive, compare observations, and reopen saved reports.</p><span>Browse reports <ArrowUpRight size={16} /></span></Link>
-          <a href="#live-status"><Radio size={23} /><h2>Live monitoring</h2><p>No live connection is configured. Review connection availability.</p><span>View connection status ↓</span></a>
+          <Link to="/dashboard/live"><Radio size={23} /><h2>Live monitoring</h2><p>Check authorized backend availability and inspect stored telemetry.</p><span>Open live workspace →</span></Link>
         </section>
         <div className="dashboard-bottom-grid">
-          <section id="live-status" className="dashboard-panel" tabIndex={-1} aria-labelledby="live-title"><p className="dashboard-eyebrow">CONNECTION STATUS</p><h2 id="live-title">Live monitoring is not connected</h2><p>Backend availability has not been checked. A secure live integration is not configured in this workspace.</p><dl className="dashboard-connection"><div><dt>Telemetry</dt><dd>Not receiving</dd></div><div><dt>Last successful collection</dt><dd>Not available</dd></div></dl><p className="dashboard-muted">The Ubuntu VM must be running for future live monitoring. Demo scenarios are simulated and do not indicate network health.</p></section>
+          <section id="live-status" className="dashboard-panel" tabIndex={-1} aria-labelledby="live-title"><p className="dashboard-eyebrow">CONNECTION STATUS</p><h2 id="live-title">Live status is checked in its workspace</h2><p>This overview does not connect to the backend. Open Live monitoring to check access and the latest observation time.</p><dl className="dashboard-connection"><div><dt>Telemetry</dt><dd>Not checked here</dd></div><div><dt>Last successful collection</dt><dd>Not available</dd></div></dl><p className="dashboard-muted">The Ubuntu VM must be running for future live monitoring. Demo scenarios are simulated and do not indicate network health.</p></section>
           <AccountCard user={currentUser} displayName={displayName} />
         </div>
         <footer className="dashboard-footer">NETSCOPE · Evidence-based network intelligence<span>Saved hypotheses are not confirmed faults.</span></footer>

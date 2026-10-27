@@ -3,6 +3,8 @@ from pathlib import Path
 import json
 
 from flask import Flask, jsonify
+from app.api.security import install_security
+from app.api.live import live
 
 from app.collector.telemetry import collect_snapshot, save_snapshot
 from app.diagnosis.bgp_analyzer import analyze_bgp
@@ -11,6 +13,8 @@ from app.diagnosis.impact_analysis import analyze_impact
 from app.diagnosis.incident_tracker import update_incident_history
 
 app = Flask(__name__)
+install_security(app)
+app.register_blueprint(live)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data"
@@ -147,4 +151,4 @@ def refresh():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host="127.0.0.1", port=5000, debug=False)

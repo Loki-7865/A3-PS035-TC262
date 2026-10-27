@@ -1,9 +1,9 @@
-# NETSCOPE progress — 26 October 2026
+# NETSCOPE progress — 27 October 2026
 
 ## Current milestone
-My Investigations and Phase A are committed and pushed. Phase B demo enhancements
-are implemented and verified; Phase B commit/push await user approval.
-Next development phase: secure Live Mode architecture.
+My Investigations, Phase A and Phase B are committed and pushed. Phase B is
+`8d1bb28` on origin/main. Phase C secure Live Mode is implemented locally;
+commit and push were approved by the user. See Phase C below for verification.
 Existing work was preserved throughout. No production records were deleted and no
 deployment was performed. See the Git milestones below for approved commits.
 
@@ -14,8 +14,9 @@ deployment was performed. See the Git milestones below for approved commits.
   service now treats absent evidence as an empty list.
 - Snapshot JSON remains backward compatible; metadata-only records are visible.
 - Flask exposes health, telemetry, diagnosis, incidents and privileged refresh.
-  Refresh calls Docker telemetry collection. No token verification is present.
-  Do not expose it publicly; incident history code also has persistence side effects.
+  Original audit: refresh calls Docker telemetry collection and lacked token verification.
+  Phase C adds authentication and disables administrative refresh by default.
+  Incident GET reads history; collection/refresh is the path that updates history.
 - No checked-in Firestore rules found. Deployed owner rules are not verified.
 - Baseline build passed with a large bundle warning; baseline lint had seven errors.
 
@@ -143,7 +144,7 @@ These files are outside the production entry point and are not copied by Vite bu
 - `d77a420`: feat: polish dashboard navigation and operational summaries.
 - Push succeeded: `14e3ea9..d77a420 main -> main`; local origin/main also resolves
   to d77a42045ce181e4edac9714e2f783b65134b2de. No force push or history rewriting.
-- Phase B below remains uncommitted; approval required before its commit/push.
+- Phase B was subsequently approved, committed as `8d1bb28`, and pushed to origin/main.
 
 ## Phase B — Demo enhancements
 
@@ -200,5 +201,53 @@ Modified: DemoDashboard, SaveInvestigation, isolated fixture/viewport harness, t
   scenario after sign-in is a future authentication-flow refinement.
 - Phase B does not add live telemetry. Secure Live Mode must first add server-side token
   verification/authorization and isolate privileged refresh from the public API.
-- Request approval for `feat: enhance demo inspection and snapshot safety` and push to
-  `origin/main`. Do not commit/push Phase B without that approval.
+- Approved commit `8d1bb28 feat: enhance demo inspection and snapshot safety`
+  was pushed to origin/main; remote advanced from d77a420 to 8d1bb28.
+
+## Phase C — Secure read-only Live Mode (27 October 2026)
+
+### Completed locally
+- Added protected Live workspace and dashboard navigation, stored topology/router
+  inspection, BGP observations, correlated causes/evidence, estimated impact and
+  stored incident history. API reachability is separate from telemetry freshness.
+- Added Firebase Admin ID-token verification with revocation checks, explicit
+  project and UID authorization, exact-origin CORS, no-store headers and fail-closed
+  authentication errors. Legacy data routes now require bearer authorization.
+- Added read-only `/api/live/snapshot`, explicit telemetry storage configuration,
+  bounded file reads and sanitized output. Tests assert no collection, save or
+  incident update is called. Physical link state remains unmeasured.
+- Administrative refresh disabled by default, requires additional admin authorization
+  when enabled, and rejects browser Origin requests. Development server is loopback-only.
+- Added HTTPS-only client configuration (loopback exception), token/response session
+  guards, timeout/abort handling, disabled redirects/cookies and optional visible-page
+  polling. Access denial clears data; connection loss retains a labeled last snapshot.
+- Fixed unknown-time handling: the browser now preserves the backend's unknown
+  freshness classification even when it can parse the timestamp locally.
+- Added `requirements.txt`, backend/client tests and `docs/LIVE_MODE.md` with
+  configuration, proposed ingress boundary and deployment/integration limitations.
+
+### Final checks
+- `npm --prefix frontend run lint`: PASS, exit 0, no lint diagnostics.
+- `npm --prefix frontend test`: PASS, 27 tests, 0 failures/skipped; experimental
+  Node module-mocking notice remains. Includes eight Live API client tests.
+- `npm --prefix frontend run build`: PASS, 1977 modules; existing >500 kB JS
+  chunk warning remains. No warning suppression added.
+- `/private/tmp/netscope-live-venv/bin/python -m unittest discover -s tests`:
+  PASS, 11 tests (nine new security/read-only API tests), no failures.
+- `git diff --check`: PASS.
+- Isolated browser fixtures: PASS for stale snapshot, router filtering, link-related
+  evidence, denied access with polling disabled, unconfigured controls disabled,
+  connection loss retaining labeled last-known data, and polling checkbox toggle.
+- Responsive harness checked 320/390/768/1280 px frames with no horizontal content
+  overflow reported; mobile and desktop screenshots reviewed. Browser fixture uses
+  synthetic services, not actual Firebase tokens or VM data. Timed background polling
+  and deployed end-to-end auth were not exercised in the browser.
+- Fixture server stopped after checks. Existing changes preserved; Phase C remains
+  reviewed and approved for commit/push. No deployment, production writes, VM/Docker operations or fault injection.
+
+### Approval / remaining activation
+- User approved commit `feat: add authenticated read-only live monitoring`
+  and push to origin/main on 27 October 2026.
+- Real ADC credentials, Firebase token validation, authorized UID/origin configuration,
+  HTTPS ingress and VM integration need operator verification before activation.
+  No tunnel or public API exposure was provisioned.
