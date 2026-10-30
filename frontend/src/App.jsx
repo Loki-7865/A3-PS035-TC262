@@ -6,6 +6,7 @@ import DemoDashboard from "./DemoDashboard";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
 
+import FaultInvestigation from "./pages/FaultInvestigation";
 import LiveMonitoring from "./pages/LiveMonitoring";
 import UserDashboard from "./pages/UserDashboard";
 import Investigations from "./pages/Investigations";
@@ -35,6 +36,8 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route path="/dashboard/investigate" element={<ProtectedRoute><FaultInvestigation /></ProtectedRoute>} />
 
         <Route path="/dashboard/live" element={<ProtectedRoute><LiveMonitoring /></ProtectedRoute>} />
 

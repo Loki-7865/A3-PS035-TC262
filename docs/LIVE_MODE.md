@@ -74,3 +74,14 @@ Automated authorization tests mock Firebase verification; UI tests use isolated
 synthetic fixtures. Real project credentials, live token verification, VM reachability,
 HTTPS ingress and deployed access policy still require an operator integration check.
 No production auth settings, VM state, Docker state or Firestore data were changed.
+
+
+## Investigation workflow (Phase D)
+
+`/dashboard/investigate` offers an explicit one-shot diagnosis of the latest stored
+Live snapshot, or review of a prerecorded demo scenario. It captures a fixed result,
+correlates router/link evidence and presents unexecuted verification suggestions.
+The separate Live monitoring page still does not save automatically. An explicit
+Save in the investigation workflow copies the full captured observations into the
+signed-in user's investigation history with Live provenance and timestamps. This
+uses existing Firestore owner permissions; deployed rules were not changed or verified.

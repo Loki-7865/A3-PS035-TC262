@@ -86,3 +86,15 @@ test('healthy scenario saves with an empty evidence list while preserving its sn
   assert.deepEqual(restored.diagnosis, snapshot.diagnosis);
   assert.equal(saved.record.evidenceCount, 0);
 });
+test('live saves retain source and capture metadata, reject mismatched sessions and oversized data', async () => {
+  const data=JSON.parse(await readFile(new URL('../public/demo/scenarios/healthy.json', import.meta.url)));
+  data.scenario={id:'live_network',name:'Live investigation',mode:'live',simulated:false};
+  data.provenance={source:'live',kind:'backend_recorded_snapshot',observed_at:'2020-01-01T00:00:00Z'};
+  data.investigation={operation:'diagnose_stored_telemetry',completed_at:'2026-01-01T00:00:00Z'};
+  await saveInvestigation({uid:'owner'},data);
+  assert.equal(saved.record.source,'live');
+  assert.deepEqual(JSON.parse(saved.record.snapshotJson).investigation,data.investigation);
+  await assert.rejects(saveInvestigation({uid:'other'},data),/log in/);
+  await assert.rejects(saveInvestigation({uid:'owner'},{...data,provenance:null}),/provenance/);
+  await assert.rejects(saveInvestigation({uid:'owner'},{...data,evidence:[{message:'x'.repeat(800001)}]}),/too large/);
+});

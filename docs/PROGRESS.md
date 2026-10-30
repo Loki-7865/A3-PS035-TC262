@@ -1,9 +1,10 @@
-# NETSCOPE progress — 27 October 2026
+# NETSCOPE progress — 31 October 2026
 
 ## Current milestone
 My Investigations, Phase A and Phase B are committed and pushed. Phase B is
-`8d1bb28` on origin/main. Phase C secure Live Mode is implemented locally;
-commit and push were approved by the user. See Phase C below for verification.
+`8d1bb28` on origin/main. Phase C was committed and pushed as `bae01be`.
+Phase D is verified and approved for commit/push on 31 October 2026.
+Phase E report tools follow in a separate feature commit.
 Existing work was preserved throughout. No production records were deleted and no
 deployment was performed. See the Git milestones below for approved commits.
 
@@ -206,7 +207,7 @@ Modified: DemoDashboard, SaveInvestigation, isolated fixture/viewport harness, t
 
 ## Phase C — Secure read-only Live Mode (27 October 2026)
 
-### Completed locally
+### Completed and pushed as bae01be
 - Added protected Live workspace and dashboard navigation, stored topology/router
   inspection, BGP observations, correlated causes/evidence, estimated impact and
   stored incident history. API reachability is separate from telemetry freshness.
@@ -242,8 +243,8 @@ Modified: DemoDashboard, SaveInvestigation, isolated fixture/viewport harness, t
   overflow reported; mobile and desktop screenshots reviewed. Browser fixture uses
   synthetic services, not actual Firebase tokens or VM data. Timed background polling
   and deployed end-to-end auth were not exercised in the browser.
-- Fixture server stopped after checks. Existing changes preserved; Phase C remains
-  reviewed and approved for commit/push. No deployment, production writes, VM/Docker operations or fault injection.
+- Fixture server stopped after checks. Existing changes preserved; Phase C was
+  approved, committed and pushed as bae01be. No deployment, production writes, VM/Docker operations or fault injection.
 
 ### Approval / remaining activation
 - User approved commit `feat: add authenticated read-only live monitoring`
@@ -251,3 +252,68 @@ Modified: DemoDashboard, SaveInvestigation, isolated fixture/viewport harness, t
 - Real ADC credentials, Firebase token validation, authorized UID/origin configuration,
   HTTPS ingress and VM integration need operator verification before activation.
   No tunnel or public API exposure was provisioned.
+
+
+## Phase D — Fault Investigation Workspace (27 October 2026)
+
+### Completed
+- Added protected `/dashboard/investigate`, linked from the dashboard sidebar and
+  Live workspace. Source/scenario selection, explicit start, captured result,
+  context inspection, investigative guidance and save form one workflow.
+- Demo reviews unchanged prerecorded diagnoses. Live calls the existing authenticated
+  read-only snapshot endpoint, which computes diagnosis from stored telemetry. No
+  collection, active probes, commands or fault injection were added.
+- Results are detached from loader updates. Source/scenario/session changes unmount
+  the run, cancel pending reads and clear old results. Starting again removes the
+  prior saveable snapshot. Observation, review-start and capture times remain distinct.
+- Router/link context correlates findings, hypotheses and evidence, including backend
+  peer observations. Multiple independent demo faults retain separate evidence sets.
+  Full-result impact is labeled separately from filtered context. No confidence scores.
+- Suggested investigative steps are explicitly unexecuted operator recommendations.
+  Missing observations, incomplete collection and uncertainty remain visible.
+- Extended existing save service for Live provenance and capture metadata, preserving
+  old demo snapshots and JSON format. Saves require matching current UID and reject
+  snapshots exceeding 800,000 UTF-8 bytes. Explicit Live save describes the copy into
+  private Firestore history. No automatic writes.
+- Report viewer retains capture provenance and supports backend incident field names;
+  estimated Live impact is no longer labeled confirmed physical-link failure.
+- Browser review fixed a shared 320px minimum-width overflow with classic scrollbars;
+  html/body now shrink to the available viewport. Updated viewport harness reports
+  body width as well as document width.
+
+### Files
+Created: `frontend/src/pages/FaultInvestigation.jsx`,
+`frontend/src/services/faultInvestigation.js`,
+`frontend/src/styles/FaultInvestigation.css`,
+`frontend/tests/faultInvestigation.test.mjs`.
+Modified: App routing, UserDashboard navigation, LiveMonitoring navigation,
+InvestigationDetails, investigations save service, index.css, investigation tests,
+isolated UI/viewport harness and progress documentation.
+
+### Verification
+- Frontend lint: PASS, no diagnostics.
+- Frontend tests: PASS, 34 tests, 0 failed/skipped (seven new Phase D tests).
+  Covers all four demo results, snapshot detachment, independent fault evidence,
+  Live normalization, cancellation/session changes, errors, uncertainty guidance,
+  Live save provenance and payload limits. Existing module-mocking notice remains.
+- Production build: PASS; existing >500 kB bundle warning remains.
+- Backend unittest suite: PASS, 11 tests; backend implementation unchanged in Phase D.
+- `git diff --check`: PASS.
+- Browser fixture: multiple-fault result shows five findings/two causes/eleven evidence
+  records; R2-R4 selection shows three findings/one cause/five evidence records.
+  Saving this filtered view preserved all eleven evidence records, one request,
+  and displayed the saved report link. Source switching cleared the previous result.
+- Browser fixture: Live stored-snapshot result, physical-state uncertainty, stale
+  label and operator guidance render; permission-denied save remains retryable;
+  offline Live returns error with no result/save action. Healthy snapshot correctly
+  shows absent observation time and no-evidence caveats.
+- Responsive checks at 320/390/768/1280px frame widths report no document/body overflow.
+  Populated 320px workflow and desktop layout visually reviewed.
+
+### Boundaries / next action
+- All UI/service tests use synthetic or mocked services. No production Firestore
+  writes or auth configuration changes. Deployed owner rules and real Firebase/VM
+  integration remain unverified, as documented in LIVE_MODE.md.
+- No deployment performed. User approved committing Phase D on 31 October 2026 as
+  `feat: add evidence-based fault investigation workspace` and push to origin/main.
+- Next feature commit: Phase E Reports and Export.

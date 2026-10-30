@@ -204,7 +204,7 @@ export default function InvestigationDetails() {
                 <span className="report-source-badge">
                   {record.source === "demo"
                     ? "SIMULATED DEMO"
-                    : "SAVED INVESTIGATION"}
+                    : record.source === "live" ? "LIVE · STORED SNAPSHOT" : "SAVED INVESTIGATION"}
                 </span>
               </div>
 
@@ -224,6 +224,7 @@ export default function InvestigationDetails() {
               </div>
             </div>
 
+            {snapshot?.investigation && <ReportCard><h2>Investigation provenance</h2><p>Operation: {readable(snapshot.investigation.operation)}</p><p>Observed: {formatDate(snapshot.telemetry?.collected_at)} · Captured: {formatDate(snapshot.investigation.completed_at)}</p><p>{snapshot.investigation.limitation}</p></ReportCard>}
             {!snapshot ? (
               <ReportCard>
                 <ReportHeading
@@ -431,12 +432,12 @@ export default function InvestigationDetails() {
 
                   <ReportCard>
                     <p className="report-description">
-                      {impact?.message || "No impact analysis was recorded."}
+                      {impact?.message || impact?.limitations || "No impact analysis was recorded."}
                     </p>
 
                     <div className="report-detail-grid">
                       <div className="report-detail">
-                        <span>Affected physical links</span>
+                        <span>{record.source === "live" ? "Links in estimated impact" : "Affected physical links"}</span>
                         <strong>
                           {readable(
                             impact?.affected_links?.length
@@ -497,7 +498,7 @@ export default function InvestigationDetails() {
                           <div className="report-card-top">
                             <h3>
                               {incident.title ||
-                                incident.id ||
+                                incident.id || incident.incident_id ||
                                 "Untitled incident"}
                             </h3>
 
@@ -507,18 +508,18 @@ export default function InvestigationDetails() {
                           </div>
 
                           <p className="report-description">
-                            {incident.description || "No description recorded."}
+                            {incident.description || incident.assessment || "No description recorded."}
                           </p>
 
                           <div className="report-incident-meta">
                             <span>Status: {readable(incident.status)}</span>
 
                             <span>
-                              Link: {readable(incident.affected_link)}
+                              Link: {readable(incident.affected_link || incident.candidate_link)}
                             </span>
 
                             <span>
-                              Detected: {formatDate(incident.detected_at)}
+                              Detected: {formatDate(incident.detected_at || incident.first_detected_at)}
                             </span>
                           </div>
                         </ReportCard>

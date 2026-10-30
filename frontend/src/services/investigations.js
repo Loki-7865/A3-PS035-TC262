@@ -1,9 +1,9 @@
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 
-import { db } from "./firebase.js";
+import { auth, db } from "./firebase.js";
 
 export async function saveInvestigation(user, scenarioData) {
-  if (!user?.uid) {
+  if (!user?.uid || auth.currentUser?.uid !== user.uid) {
     throw new Error("Please log in to save investigations.");
   }
 
@@ -30,6 +30,10 @@ export async function saveInvestigation(user, scenarioData) {
     throw new Error("Incomplete investigation snapshot.");
   }
 
+  const source = scenario.mode === 'live' ? 'live' : 'demo';
+  if (source === 'live' && (scenario.simulated !== false || scenarioData.provenance?.source !== 'live' || scenarioData.provenance?.kind !== 'backend_recorded_snapshot')) {
+    throw new Error("Live provenance is required.");
+  }
   // Serialize the full snapshot.
   // This preserves nested arrays that Firestore cannot
   // store directly inside array fields.
@@ -40,10 +44,13 @@ export async function saveInvestigation(user, scenarioData) {
     diagnosis,
     evidence,
     incidents,
+    ...(scenarioData.provenance ? { provenance: scenarioData.provenance } : {}),
+    ...(scenarioData.investigation ? { investigation: scenarioData.investigation } : {}),
   });
+  if (new TextEncoder().encode(snapshotJson).length > 800000) throw new Error("Investigation is too large to save safely.");
 
   const investigation = {
-    source: "demo",
+    source,
     scenarioId: scenario.id,
     title: scenario.name || scenario.title || scenario.id,
     status: "saved",
