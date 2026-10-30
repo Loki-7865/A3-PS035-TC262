@@ -12,6 +12,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
+import ReportTools from "../components/ReportTools";
+import { snapshotOf } from "../utils/investigationList";
 import { db } from "../services/firebase";
 import { useAuth } from "../contexts/authState";
 
@@ -78,6 +80,10 @@ export default function InvestigationDetails() {
   const { investigationId } = useParams();
   const { currentUser } = useAuth();
 
+  return <InvestigationReport key={`${currentUser?.uid}:${investigationId}`} currentUser={currentUser} investigationId={investigationId} />;
+}
+
+function InvestigationReport({currentUser, investigationId}) {
   const [record, setRecord] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -111,8 +117,8 @@ export default function InvestigationDetails() {
           setError("Investigation not found.");
         } else {
           setRecord({
-            id: result.id,
             ...result.data(),
+            id: result.id,
           });
         }
       } catch (err) {
@@ -132,19 +138,8 @@ export default function InvestigationDetails() {
     };
   }, [currentUser?.uid, investigationId]);
 
-  let snapshot = null;
-  let snapshotError = "";
-
-  if (record?.snapshotJson) {
-    try {
-      snapshot = JSON.parse(record.snapshotJson);
-    } catch {
-      snapshotError = "Saved snapshot could not be decoded.";
-    }
-  } else if (record?.snapshot) {
-    // Compatibility with any records saved as Firestore maps.
-    snapshot = record.snapshot;
-  }
+  const snapshot = record ? snapshotOf(record) : null;
+  const snapshotError = record?.snapshotJson && !snapshot ? "Saved snapshot could not be decoded." : "";
 
   const findings = snapshot?.diagnosis?.findings ?? [];
   const causes = snapshot?.diagnosis?.candidate_root_causes ?? [];
@@ -530,6 +525,7 @@ export default function InvestigationDetails() {
               </>
             )}
 
+            <ReportTools record={record} uid={currentUser.uid} />
             <div className="report-disclaimer">
               <ShieldCheck size={17} />
               {record.source === "demo"

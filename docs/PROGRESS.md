@@ -3,8 +3,10 @@
 ## Current milestone
 My Investigations, Phase A and Phase B are committed and pushed. Phase B is
 `8d1bb28` on origin/main. Phase C was committed and pushed as `bae01be`.
-Phase D is verified and approved for commit/push on 31 October 2026.
-Phase E report tools follow in a separate feature commit.
+Phase D is committed as `b234853`. Phase E is verified and approved for commit/push
+on 31 October 2026; both features will be pushed together.
+Phase E adds selected report exports and operator notes; browser PDF output still
+needs verification in a browser with an accessible print dialog.
 Existing work was preserved throughout. No production records were deleted and no
 deployment was performed. See the Git milestones below for approved commits.
 
@@ -314,6 +316,65 @@ isolated UI/viewport harness and progress documentation.
 - All UI/service tests use synthetic or mocked services. No production Firestore
   writes or auth configuration changes. Deployed owner rules and real Firebase/VM
   integration remain unverified, as documented in LIVE_MODE.md.
-- No deployment performed. User approved committing Phase D on 31 October 2026 as
+- Phase D committed as `b234853` after user approval on 31 October 2026:
   `feat: add evidence-based fault investigation workspace` and push to origin/main.
-- Next feature commit: Phase E Reports and Export.
+- Next development phase after approval: Phase E Reports and Export.
+
+
+## Phase E — Reports and Export (31 October 2026)
+
+### Implemented
+- Report tools on saved investigation details: metadata-only by default, explicit
+  section selection for findings/hypotheses, evidence, incidents, impact and saved
+  operator notes. Prepare a visible preview before downloading JSON or printing.
+- JSON uses a versioned report format with source, observation/capture/save/export
+  times and uncertainty disclaimer. Export is a selected report, not a full backup.
+  An allowlist excludes arbitrary fields, raw telemetry, credentials and config.
+  Selected free-text may still contain sensitive content; review before sharing.
+- Print stylesheet prints only the prepared preview. Print / Save as PDF invokes
+  the browser dialog; no external export service or new PDF dependency. The user
+  chooses Save as PDF. Actual PDF pagination/output has NOT yet been verified.
+- Notes use owner-scoped updateDoc and modify only notes/notesUpdatedAt, with a
+  10,000-character limit, duplicate-submit guard and retained draft on failure.
+  Exports include saved notes only. Writes replace notes (last write wins); no
+  collaborative editing or conflict merging. Original evidence is unchanged.
+- Details are keyed by account/report to clear the old result immediately during
+  session/navigation changes; document ID comes from Firestore rather than payload.
+- Existing legacy metadata reports and malformed JSON can still export metadata.
+  No migrations, production writes, Firebase rule changes or deployment performed.
+
+### Files
+Added `frontend/src/components/ReportTools.jsx`, `frontend/src/styles/ReportTools.css`,
+`frontend/src/utils/reportExport.js`, `frontend/src/services/reportNotes.js` and
+`frontend/tests/reportExport.test.mjs`. Updated InvestigationDetails and the isolated
+UI/viewport harness, retaining every existing Phase D change.
+
+### Verification
+- `npm --prefix frontend run lint`: PASS, no diagnostics.
+- `npm --prefix frontend test`: PASS, 41 tests, 0 failures/skipped. Seven new tests
+  cover opt-in fields, credential-field exclusion, legacy/corrupt snapshots, Live
+  provenance, filenames and owner-scoped/validated notes writes. Node experimental
+  module-mocking warning remains.
+- `npm --prefix frontend run build`: PASS, 1984 modules; JS 964.23 kB (289.31 kB gzip),
+  CSS 73.16 kB. Existing >500 kB bundle warning remains.
+- Backend tests initially could not run because the prior temporary virtualenv had
+  expired and system Python lacked firebase_admin. Recreated the temporary venv and
+  installed existing requirements; final unittest run: PASS, 11 tests.
+- `git diff --check`: PASS.
+- Browser synthetic fixture: saved notes success; permission denial preserves draft;
+  selected metadata/notes preview; full selected report with 5 findings, 2 hypotheses,
+  11 evidence records and 2 incidents; JSON download action feedback all verified.
+  JSON payload content verified in unit tests; downloaded file not inspected in UI.
+- Responsive fixture: 320/390/768/1280px frames, no horizontal document/body overflow.
+- Print click blocked embedded-browser control; the app containing its dialog is
+  unavailable to computer-use tools. Closed the temporary tab. PDF output/pagination
+  remains a manual browser verification item; do not claim verified PDF delivery.
+- Fixture server stopped after checks. Optional comparison is deferred.
+
+### Approval / next step
+- User approved both commits and push on 31 October 2026. Phase D is `b234853`.
+- Approved Phase E commit message:
+  `feat: add reviewed report exports and operator notes`.
+- Complete a browser Save as PDF check before release. Real Firestore rule permission
+  for notes updates and real Live/Firebase integration remain unverified.
+- Next implementation phase: Phase F Account and Workspace Settings.
