@@ -1,0 +1,117 @@
+
+/* NETSCOPE Intelligence Core
+   Monitoring: sage green
+   Investigating: coral red
+*/
+
+/* Default monitoring state */
+
+.intelligence-core {
+  background: linear-gradient(
+    145deg,
+    #86b592 0%,
+    #517f5f 48%,
+    #305342 100%
+  );
+  border-color: #c6e8ca;
+  box-shadow:
+    0 0 0 8px rgba(125, 190, 139, 0.17),
+    0 0 0 20px rgba(125, 190, 139, 0.055),
+    0 17px 42px rgba(10, 29, 17, 0.44),
+    inset 0 2px 14px rgba(222, 255, 224, 0.25);
+}
+
+.intelligence-orbit {
+  border-color: rgba(154, 209, 163, 0.4);
+}
+
+.intelligence-glow {
+  background: radial-gradient(
+    circle,
+    rgba(101, 174, 117, 0.28),
+    transparent 69%
+  );
+}
+
+.orbit-satellite,
+.intelligence-signal {
+  background: #b5e5b9;
+  box-shadow: 0 0 15px #89cf98;
+}
+
+.intelligence-mini-wave i {
+  background: #9bd4a4;
+}
+
+.intelligence-live {
+  color: #a8dbb1;
+}
+
+.intelligence-live > span {
+  background: #a8dbb1;
+  box-shadow: 0 0 0 4px rgba(130, 204, 146, 0.18);
+}
+
+.intelligence-mode-buttons button.selected:not(.warning) {
+  color: #203b2b;
+  background: #a9d8b0;
+  border-color: #a9d8b0;
+}
+
+/* Investigating / fault state */
+
+.intelligence-stage:has(.is-fault) {
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(239, 113, 78, 0.19),
+      transparent 68%
+    ),
+    radial-gradient(
+      rgba(210, 190, 164, 0.16) 1px,
+      transparent 1px
+    );
+  background-size: auto, 21px 21px;
+}
+
+.intelligence-stage:has(.is-fault) .intelligence-glow {
+  background: radial-gradient(
+    circle,
+    rgba(240, 119, 80, 0.35),
+    transparent 69%
+  );
+}
+
+.intelligence-assembly.is-fault .intelligence-core {
+  background: linear-gradient(
+    145deg,
+    #f5ae85 0%,
+    #de7955 50%,
+    #984737 100%
+  );
+  border-color: #ffd3b7;
+  box-shadow:
+    0 0 0 9px rgba(243, 126, 86, 0.23),
+    0 0 0 20px rgba(243, 126, 86, 0.08),
+    0 19px 46px rgba(33, 10, 5, 0.48);
+}
+
+.intelligence-assembly.is-fault .intelligence-orbit {
+  border-color: rgba(255, 143, 103, 0.65);
+}
+
+.intelligence-assembly.is-fault .orbit-satellite,
+.intelligence-assembly.is-fault .intelligence-signal {
+  background: #ffc19e;
+  box-shadow: 0 0 16px #f39c76;
+}
+
+.intelligence-mini-wave.fault i {
+  background: #ff876c;
+}
+
+.intelligence-mode-buttons button.selected.warning {
+  background: #ea7850;
+  border-color: #ea7850;
+  color: #ffffff;
+}

@@ -1,0 +1,26 @@
+.live-page { line-height:1.6; }
+.live-page nav,.live-controls,.live-heading { display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+.live-page a { color:inherit; }
+.live-page nav { font-size:13px; }
+.live-main { max-width:1160px; margin:auto; padding:40px 24px 64px; }
+.live-main h1 { font-size:clamp(30px,4vw,46px); margin:10px 0; letter-spacing:-1px; }
+.live-eyebrow { font-size:11px; color:#93462f; letter-spacing:1.5px; font-weight:800; }
+.live-main > p,.live-panel > p { color:#5f645a; font-size:14px; }
+.live-panel { background:#fffdf8; border:1px solid #e0dbcf; border-radius:18px; padding:26px; margin:24px 0; overflow-wrap:anywhere; }
+.live-panel h2 { font-size:20px; margin:0 0 12px; }
+.live-panel h3 { font-size:16px; }
+.live-page button { border:1px solid #d6ccbc; border-radius:10px; background:#f4eee4; color:#33392f; padding:10px 14px; font:inherit; font-size:13px; cursor:pointer; }
+.live-page button:disabled { cursor:default; opacity:.55; }
+.live-page :is(a,button,input,select,textarea):focus-visible { outline:3px solid #a94b30; outline-offset:3px; }
+.live-page button[aria-pressed=true] { border-color:#9e4e32; background:#fae4d4; }
+.live-routers,.live-links { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin:18px 0; }
+.live-routers button,.live-links button { display:flex; flex-direction:column; text-align:left; gap:6px; }
+.live-routers small { font-size:11px; }
+.live-times { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; font-size:12px; margin:24px 0; }
+.live-times dt { color:#65695f; }.live-times dd { margin:5px 0; font-weight:650; }
+.live-controls label { font-size:13px; }.live-controls input { margin-right:8px; }
+.live-panel .live-error { background:#fae4dc; color:#922f21; padding:12px; border-radius:8px; }
+.live-note { font-size:12px!important; color:#65695f; }
+.live-record { border-top:1px solid #e6e0d6; padding:16px 0; font-size:13px; }.live-record p { margin:8px 0; }.live-record small { color:#666b60; }
+@media(max-width:600px) { .live-page .workspace-header { flex-wrap:wrap; height:auto; gap:18px; padding:20px; }.live-times { grid-template-columns:1fr; }.live-main { padding:24px 16px; }.live-panel { padding:18px; } }
+@media(prefers-reduced-motion:reduce) { .live-page * { animation:none!important; transition:none!important; scroll-behavior:auto!important; } }

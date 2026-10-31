@@ -1,0 +1,52 @@
+// Isolated, loopback-only UI fixture. No Firebase modules or production data are loaded.
+import { createServer } from 'vite';
+import react from '@vitejs/plugin-react';
+import { fileURLToPath } from 'node:url';
+const root = fileURLToPath(new URL('../', import.meta.url));
+const server = await createServer({
+  root, configFile: false, plugins: [{
+    name: 'isolated-investigations-fixture', enforce: 'pre',
+    resolveId(id) { if (id === '/fixture.jsx') return '\0fixture.jsx'; },
+    load(id) {
+      if (id === '\0fixture.jsx') return `import Login from '/src/pages/Login.jsx'; import Signup from '/src/pages/Signup.jsx'; import '/src/styles/Auth.css'; import React from 'react'; import { createRoot } from 'react-dom/client'; import { BrowserRouter } from 'react-router'; import Investigations from '/src/pages/Investigations.jsx'; import Dashboard from '/src/pages/UserDashboard.jsx'; import Demo from '/src/DemoDashboard.jsx'; import Live from '/src/pages/LiveMonitoring.jsx'; import Fault from '/src/pages/FaultInvestigation.jsx'; import Settings from '/src/pages/AccountSettings.jsx'; import Reset from '/src/pages/ResetPassword.jsx'; import ReportTools from '/src/components/ReportTools.jsx'; const sample=await (await fetch('/demo/scenarios/multiple_faults.json')).json(); import '/src/styles/InvestigationDetails.css'; const ReportFixture=()=>React.createElement('main',{className:'report-main'},React.createElement(ReportTools,{uid:'synthetic-test-owner',record:{id:'synthetic-report',title:'Multiple faults',source:'demo',snapshotJson:JSON.stringify(sample),notes:'Synthetic operator notes'}})); import '/src/index.css'; createRoot(document.getElementById('root')).render(React.createElement(BrowserRouter,null,React.createElement(new URLSearchParams(location.search).has('login') ? Login : new URLSearchParams(location.search).has('signup') ? Signup : new URLSearchParams(location.search).has('settings') ? Settings : new URLSearchParams(location.search).has('reset') ? Reset : new URLSearchParams(location.search).has('report') ? ReportFixture : new URLSearchParams(location.search).has('investigate') ? Fault : new URLSearchParams(location.search).has('live') ? Live : new URLSearchParams(location.search).has('dashboard') ? Dashboard : new URLSearchParams(location.search).has('demo') ? Demo : Investigations)));`;
+      if (id.endsWith('/services/account.js')) return `
+        export const accountProviders=user=>({google:user.providerData.some(p=>p.providerId==='google.com'),password:user.providerData.some(p=>p.providerId==='password')});
+        export const accountError=error=>error.message;
+        const wait=async()=>{await new Promise(r=>setTimeout(r,200));if(new URLSearchParams(location.search).has('account-error'))throw Error('Synthetic account failure; please retry.');};
+        export async function saveAccountProfile(user,name,remove){await wait();user.displayName=name;if(remove)user.photoURL=null;}
+        export async function refreshAccount(user){await wait();user.emailVerified=true;}
+        export const verifyEmail=wait; export const resetAccountPassword=wait;
+        export async function changeAccountPassword(user,current,password,confirm){await wait();if(password!==confirm)throw Error('New passwords do not match.');}
+        export async function deleteEmptyAccount(){await wait();throw Error('Saved investigations remain. Export and delete them in My Investigations before deleting your account.');}
+      `;
+      if (id.endsWith('/services/reportNotes.js')) return `export async function saveReportNotes(uid,id,notes){await new Promise(r=>setTimeout(r,200));if(new URLSearchParams(location.search).has('notes-error'))throw Error('Synthetic permission denial');}`;
+      if (id.endsWith('/services/firebase.js')) return `export const auth={currentUser:{uid:'synthetic-test-owner'}};`;
+      if (id.endsWith('/services/liveApi.js')) return `
+        let liveCalls=0; export const liveConfiguration=()=>({endpoint:new URLSearchParams(location.search).has('unconfigured')?null:'synthetic',error:''});
+        export const validateLiveSnapshot=data=>data; export const freshness=()=> 'Stale telemetry';
+        export async function fetchLiveSnapshot(){ await new Promise(r=>setTimeout(r,200)); const p=new URLSearchParams(location.search); if(p.has('offline') || (p.has('disconnect') && ++liveCalls > 1)) throw Error('Synthetic backend unavailable'); if(p.has('denied')) throw Object.assign(Error('Synthetic network access denied'),{status:403}); return {provenance:'backend_recorded_snapshot',freshness:'stale',evidence:[{id:'finding-1',router:'R1',neighbor:'10.0.12.2',type:'bgp_down',message:'Synthetic peer is Idle'}],observed_at:'2020-01-01T00:00:00Z',served_at:new Date().toISOString(),routers:[{id:'R1',status:'attention',collection_ok:true,findings_count:1},{id:'R2',status:'unknown',collection_ok:false,findings_count:0}],topology:{links:[{id:'R1-R2',a:'R1',b:'R2',status:'suspected',physical_status:'not_measured'}]},diagnosis:{findings:[{router:'R1',neighbor:'10.0.12.2',type:'bgp_down',severity:'CRITICAL',message:'Synthetic peer is Idle'}],candidate_root_causes:[{candidate_link:'R1-R2',severity:'CRITICAL',assessment:'Synthetic BGP hypothesis',evidence:'R1 peer Idle',observations:[{router:'R1',neighbor:'10.0.12.2'}]}],impact_analysis:{limitations:'Topology estimate only',affected_links:[]}},incidents:[],incidents_total:0}; }
+      `;
+      if (id.endsWith('/contexts/authState.js')) return `const fixtureState = {currentUser:new URLSearchParams(location.search).has('signedout')?null:{uid:'synthetic-test-owner',displayName:'Test Operator',email:'operator@example.test',emailVerified:false,photoURL:'/fixture-missing-avatar.png',providerData:[{providerId:new URLSearchParams(location.search).has('password')?'password':'google.com'}]},login:async()=>{throw {code:'auth/invalid-credential'};},loginWithGoogle:async()=>{throw {code:'auth/popup-closed-by-user'};},signup:async()=>{throw {code:'auth/email-already-in-use'};},refreshProfile:async()=>{},logout:async()=>{if(new URLSearchParams(location.search).has('logout-error')) throw Error('Fixture signout error');}}; export const useAuth=()=>fixtureState;`;
+      if (id.endsWith('/services/investigations.js')) return `
+        let calls=0;
+        export async function saveInvestigation(user,snapshot) { calls++; await new Promise(r=>setTimeout(r,500)); if(new URLSearchParams(location.search).has('save-error')) throw {code:'permission-denied'}; let output=document.getElementById('fixture-save'); if(!output){output=document.createElement('output');output.id='fixture-save';document.body.append(output);} output.textContent='Fixture saved: '+snapshot.scenario.id+'; calls: '+calls+'; evidence: '+(snapshot.evidence||[]).length; return 'synthetic-report'; }
+      `;
+      if (id.endsWith('/services/dashboard.js')) return `
+        const params = new URLSearchParams(location.search);
+        let attempts=0;
+        export async function loadWorkspaceCounts() { await new Promise(r=>setTimeout(r,300)); if(params.has('counts-error') && !attempts++) throw Error('denied'); return {total:params.has('empty')?0:31,demo:params.has('empty')?0:27,live:0,checkedAt:new Date()}; }
+        export function subscribeRecentInvestigations(success,error) { const timer=setTimeout(()=>{if(params.has('recent-error')) {error(Error('denied'));return;} success({cached:params.has('cached'),records:params.has('empty')||params.has('legacy')?[]:Array.from({length:5},(_,i)=>({id:String(i),title:'Saved network investigation '+(i+1),source:'demo',createdAt:{seconds:1793000000-i*100}}))});},300); return ()=>clearTimeout(timer); }
+      `;
+      if (id.endsWith('/services/investigationHistory.js')) return `
+        const params = new URLSearchParams(location.search);
+        const all = Array.from({length: params.has('empty') ? 0 : 31}, (_,i) => ({id:String(i),title:i===0?'Legacy metadata':i===30?'Final searchable report':'Investigation '+String(i).padStart(2,'0'),source:'demo',scenarioId:i%2?'bgp_failure':'link_failure',status:'saved',...(i===0?{}:{createdAt:{seconds:1793000000+i*100},findingsCount:i%5,rootCausesCount:i%3,evidenceCount:11,incidentsCount:2,snapshotJson:'{}'})}));
+        let loadAttempts=0;
+        export async function loadInvestigationBatch(cursor=0) { await new Promise(resolve=>setTimeout(resolve,300)); if(params.has('load-error') && !loadAttempts++) throw Error('Fixture load error'); return {records:all.slice(cursor,cursor+25),cursor:cursor+25,hasMore:cursor+25<all.length}; }
+        export async function deleteInvestigation(id) { await new Promise(resolve=>setTimeout(resolve,400)); if(params.has('delete-error')) throw Error('Fixture permission denied'); const index=all.findIndex(r=>r.id===id); if(index>=0) all.splice(index,1); }
+        export const historyError = () => 'Fixture: access denied. Please try again.';
+      `;
+    },
+    configureServer(server) { server.middlewares.use(async (req,res,next) => { if(req.url.startsWith('/demo/scenarios/')) { const referer=new URL(req.headers.referer||'http://localhost'); if(referer.searchParams.has('demo-error') && req.url.includes('bgp_failure')) {res.statusCode=503;res.end('Synthetic failure');return;} if(referer.searchParams.has('slow')) await new Promise(r=>setTimeout(r,req.url.includes('link_failure')?2000:1200)); return next(); } if (req.url.split('?')[0] !== '/') return next(); res.setHeader('Content-Type','text/html'); res.end(await server.transformIndexHtml(req.url, '<html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div id="root"></div><script type="module" src="/@vite/client"></script><script type="module" src="/fixture.jsx"></script></body></html>')); }); },
+  }, react()], server:{host:'127.0.0.1',port:5180,strictPort:true},
+});
+await server.listen(); server.printUrls();

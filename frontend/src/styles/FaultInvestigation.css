@@ -1,0 +1,7 @@
+.fault-selectors { display:flex; flex-wrap:wrap; gap:20px; }
+.fault-selectors label { display:flex; flex-direction:column; gap:8px; font-size:14px; font-weight:600; max-width:100%; }
+.fault-selectors select { border:1px solid #d6ccbc; border-radius:8px; padding:12px; background:#fffdf8; color:#33392f; font:inherit; max-width:100%; }
+.fault-page select:focus-visible { outline:3px solid #a94b30; outline-offset:3px; }
+.fault-page li { margin:12px 0; font-size:14px; }
+.fault-page h3 { margin-top:24px; }
+.fault-page .demo-save-error { color:#922f21; }

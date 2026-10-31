@@ -1,0 +1,290 @@
+{
+  "scenario": {
+    "id": "multiple_faults",
+    "name": "Multiple Simultaneous Network Faults",
+    "description": "A physical R2-R4 link failure occurs alongside an independent R4-R5 BGP configuration mismatch.",
+    "mode": "demo",
+    "simulated": true,
+    "status": "critical"
+  },
+  "telemetry": {
+    "project": "PS-035",
+    "collected_at": "2026-10-24T12:00:15Z",
+    "routers": [
+      {
+        "router": "r1",
+        "healthy_collection": true,
+        "bgp": { "success": true }
+      },
+      {
+        "router": "r2",
+        "healthy_collection": true,
+        "bgp": { "success": true }
+      },
+      {
+        "router": "r3",
+        "healthy_collection": true,
+        "bgp": { "success": true }
+      },
+      {
+        "router": "r4",
+        "healthy_collection": true,
+        "bgp": { "success": true }
+      },
+      {
+        "router": "r5",
+        "healthy_collection": true,
+        "bgp": { "success": true }
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "id": "EV-201",
+      "timestamp": "2026-10-24T12:00:01Z",
+      "source": "interface",
+      "router": "r2",
+      "link": "R2-R4",
+      "observation": "down",
+      "message": "R2 interface toward R4 is operationally down."
+    },
+    {
+      "id": "EV-202",
+      "timestamp": "2026-10-24T12:00:02Z",
+      "source": "interface",
+      "router": "r4",
+      "link": "R2-R4",
+      "observation": "down",
+      "message": "R4 interface toward R2 is operationally down."
+    },
+    {
+      "id": "EV-203",
+      "timestamp": "2026-10-24T12:00:04Z",
+      "source": "bgp",
+      "router": "r2",
+      "link": "R2-R4",
+      "observation": "idle",
+      "message": "R2 BGP adjacency with R4 is not established."
+    },
+    {
+      "id": "EV-204",
+      "timestamp": "2026-10-24T12:00:05Z",
+      "source": "bgp",
+      "router": "r4",
+      "link": "R2-R4",
+      "observation": "idle",
+      "message": "R4 BGP adjacency with R2 is not established."
+    },
+    {
+      "id": "EV-205",
+      "timestamp": "2026-10-24T12:00:06Z",
+      "source": "active_probe",
+      "router": "r2",
+      "target": "r4",
+      "link": "R2-R4",
+      "observation": "direct_link_unreachable",
+      "message": "Direct-link connectivity probe from R2 to R4 failed."
+    },
+    {
+      "id": "EV-206",
+      "timestamp": "2026-10-24T12:00:03Z",
+      "source": "interface",
+      "router": "r4",
+      "link": "R4-R5",
+      "observation": "up",
+      "message": "R4 interface toward R5 remains operationally up."
+    },
+    {
+      "id": "EV-207",
+      "timestamp": "2026-10-24T12:00:04Z",
+      "source": "interface",
+      "router": "r5",
+      "link": "R4-R5",
+      "observation": "up",
+      "message": "R5 interface toward R4 remains operationally up."
+    },
+    {
+      "id": "EV-208",
+      "timestamp": "2026-10-24T12:00:08Z",
+      "source": "active_probe",
+      "router": "r4",
+      "target": "r5",
+      "link": "R4-R5",
+      "observation": "direct_link_reachable",
+      "packet_loss_percent": 0,
+      "message": "Direct interface connectivity between R4 and R5 is successful."
+    },
+    {
+      "id": "EV-209",
+      "timestamp": "2026-10-24T12:00:09Z",
+      "source": "bgp",
+      "router": "r4",
+      "link": "R4-R5",
+      "observation": "idle",
+      "message": "BGP adjacency from R4 toward R5 is not established."
+    },
+    {
+      "id": "EV-210",
+      "timestamp": "2026-10-24T12:00:10Z",
+      "source": "bgp",
+      "router": "r5",
+      "link": "R4-R5",
+      "observation": "idle",
+      "message": "BGP adjacency from R5 toward R4 is not established."
+    },
+    {
+      "id": "EV-211",
+      "timestamp": "2026-10-24T12:00:12Z",
+      "source": "bgp_config",
+      "router": "r5",
+      "link": "R4-R5",
+      "observation": "remote_as_mismatch",
+      "message": "Simulated configuration comparison found an incorrect remote AS number on R5 for the R4 neighbor."
+    }
+  ],
+  "diagnosis": {
+    "snapshot_timestamp": "2026-10-24T12:00:15Z",
+    "routers_analyzed": 5,
+    "finding_count": 5,
+    "findings": [
+      {
+        "id": "F-201",
+        "type": "interface_down",
+        "severity": "critical",
+        "router": "r2",
+        "link": "R2-R4",
+        "evidence_ids": ["EV-201"]
+      },
+      {
+        "id": "F-202",
+        "type": "interface_down",
+        "severity": "critical",
+        "router": "r4",
+        "link": "R2-R4",
+        "evidence_ids": ["EV-202"]
+      },
+      {
+        "id": "F-203",
+        "type": "bgp_session_down",
+        "severity": "high",
+        "router": "r2",
+        "link": "R2-R4",
+        "evidence_ids": ["EV-203", "EV-204"]
+      },
+      {
+        "id": "F-204",
+        "type": "bgp_session_down",
+        "severity": "high",
+        "router": "r4",
+        "link": "R4-R5",
+        "evidence_ids": ["EV-209", "EV-210"]
+      },
+      {
+        "id": "F-205",
+        "type": "bgp_configuration_mismatch",
+        "severity": "high",
+        "router": "r5",
+        "link": "R4-R5",
+        "evidence_ids": ["EV-211"]
+      }
+    ],
+    "candidate_root_causes": [
+      {
+        "id": "RC-201",
+        "type": "physical_link_failure",
+        "suspected_link": "R2-R4",
+        "severity": "critical",
+        "confidence_label": "high",
+        "evidence_ids": ["EV-201", "EV-202", "EV-203", "EV-204", "EV-205"],
+        "explanation": "Both R2-R4 interfaces are down, the corresponding BGP sessions are not established, and the direct connectivity probe failed. A physical or interface-level fault is the leading explanation.",
+        "recommended_action": "Inspect the R2-R4 interfaces, administrative state, and underlying physical or virtual link."
+      },
+      {
+        "id": "RC-202",
+        "type": "bgp_configuration_error",
+        "suspected_link": "R4-R5",
+        "severity": "high",
+        "confidence_label": "high",
+        "evidence_ids": [
+          "EV-206",
+          "EV-207",
+          "EV-208",
+          "EV-209",
+          "EV-210",
+          "EV-211"
+        ],
+        "explanation": "The R4-R5 interfaces are up and the direct probe succeeds, but the BGP adjacency remains down. A simulated configuration comparison identifies a remote AS mismatch.",
+        "recommended_action": "Verify the intended BGP AS numbers and remote-as settings on both routers before applying any configuration correction."
+      }
+    ],
+    "impact_analysis": {
+      "affected_links": ["R2-R4"],
+      "affected_bgp_sessions": ["R2-R4", "R4-R5"],
+      "network_partitioned": false,
+      "connected_components": [["R1", "R2", "R3", "R4", "R5"]],
+      "alternate_path": ["R2", "R1", "R3", "R4"],
+      "alternate_path_type": "topology_only",
+      "message": "The physical topology remains connected after the R2-R4 failure. However, the independent R4-R5 BGP failure may prevent route exchange with R5. End-to-end forwarding reachability has not been verified."
+    }
+  },
+  "incidents": [
+    {
+      "id": "INC-201",
+      "title": "R2-R4 Physical Link Failure",
+      "status": "active",
+      "severity": "critical",
+      "detected_at": "2026-10-24T12:00:15Z",
+      "suspected_root_cause": "physical_link_failure",
+      "affected_link": "R2-R4",
+      "evidence_ids": ["EV-201", "EV-202", "EV-203", "EV-204", "EV-205"],
+      "description": "Correlated interface, BGP, and probe observations suggest an R2-R4 physical or interface-level failure."
+    },
+    {
+      "id": "INC-202",
+      "title": "R4-R5 BGP Configuration Failure",
+      "status": "active",
+      "severity": "high",
+      "detected_at": "2026-10-24T12:00:15Z",
+      "suspected_root_cause": "bgp_configuration_error",
+      "affected_link": "R4-R5",
+      "evidence_ids": [
+        "EV-206",
+        "EV-207",
+        "EV-208",
+        "EV-209",
+        "EV-210",
+        "EV-211"
+      ],
+      "description": "The R4-R5 connection remains physically operational, but BGP fails because of a simulated remote AS configuration mismatch."
+    }
+  ],
+  "topology": {
+    "routers": ["R1", "R2", "R3", "R4", "R5"],
+    "links": [
+      {
+        "id": "R1-R2",
+        "status": "healthy"
+      },
+      {
+        "id": "R1-R3",
+        "status": "healthy"
+      },
+      {
+        "id": "R2-R4",
+        "status": "failed",
+        "physical_status": "down",
+        "bgp_status": "down"
+      },
+      {
+        "id": "R3-R4",
+        "status": "healthy"
+      },
+      {
+        "id": "R4-R5",
+        "status": "degraded",
+        "physical_status": "up",
+        "bgp_status": "down"
+      }
+    ]
+  }
+}

@@ -1,0 +1,488 @@
+# NETSCOPE progress — 31 October 2026
+
+## Current milestone
+My Investigations, Phase A and Phase B are committed and pushed. Phase B is
+`8d1bb28` on origin/main. Phase C was committed and pushed as `bae01be`.
+Phase D (`b234853`) and Phase E (`fa39780`) are committed and pushed to origin/main.
+Phase F account settings are verified and approved for commit/push on 31 October 2026.
+PDF output verification and production account cleanup guarantees remain open.
+Existing work was preserved throughout. No production records were deleted and no
+deployment was performed. See the Git milestones below for approved commits.
+
+## Architecture audit
+- Existing React/Vite frontend: public landing/demo, Firebase Auth session provider,
+  protected workspace, per-user Firestore snapshots and detailed reports.
+- Four demo fixtures retained unchanged. Healthy fixture omits evidence; the save
+  service now treats absent evidence as an empty list.
+- Snapshot JSON remains backward compatible; metadata-only records are visible.
+- Flask exposes health, telemetry, diagnosis, incidents and privileged refresh.
+  Original audit: refresh calls Docker telemetry collection and lacked token verification.
+  Phase C adds authentication and disables administrative refresh by default.
+  Incident GET reads history; collection/refresh is the path that updates history.
+- No checked-in Firestore rules found. Deployed owner rules are not verified.
+- Baseline build passed with a large bundle warning; baseline lint had seven errors.
+
+## Completed
+- History batches of 25, cursor pagination, ten visible matches at a time.
+- Explicit search/filter/sort scope: all loaded records, not merely visible cards.
+  Load more to extend the scope; entire archive is stated only after exhaustion.
+- Document-ID pagination includes legacy documents missing createdAt. Newest/oldest
+  sorting is over loaded records; batches are NOT globally newest-first.
+- Search title, scenario ID/name, source and available fault classifications.
+- Source/scenario/status/date filters; newest/oldest/title sorting.
+- Metadata, counts, unknown values, simulated provenance and report links.
+- Owner-scoped deletion, named confirmation, Escape/cancel, repeated-submit guard,
+  success feedback, failure retention and removal from the local loaded list.
+- Navigation from workspace, details, and successful save.
+- Responsive styles and reduced-motion/focus treatment.
+- Existing lint failures corrected: unused imports, auth hook separated from provider,
+  redundant synchronous state updates removed from protected pages.
+
+## Resume verification and fixes
+- Process inspection: no fixture/test process running after interruption. Two existing
+  Vite servers were left untouched. The separate fixture server used loopback port 5180.
+- Fixed fixture server missing Vite React preamble via transformIndexHtml.
+- Fixed deletion focus restoration: move focus after dialog closes, to Saved reports.
+- Removed trailing blank line identified by git diff --check.
+
+## Exact check results
+- `npm --prefix frontend run lint`: PASS, exit 0, no errors/warnings.
+- `npm --prefix frontend test`: PASS, 9 tests, 0 failed/skipped. Node 22.16.0 emits
+  an experimental-module-mocking notice; no test dependency added.
+- `npm --prefix frontend run build`: PASS, exit 0, 1969 modules. JS 920.43 kB
+  (277.72 kB gzip), CSS 59.22 kB. Existing >500 kB chunk warning remains.
+- `python3 -m unittest discover -s tests`: PASS, 2 tests.
+- `git diff --check`: initially found AuthContext trailing blank line; corrected;
+  final check PASS.
+- Browser checks against isolated in-memory fixtures: PASS for initial loading,
+  25-to-31 record pagination, 10-to-20 visible results, search across loaded batches,
+  source/scenario filters, oldest/title sorting, clear filters, legacy metadata,
+  unknown counts/date, empty archive, load failure/retry, deletion confirmation,
+  Escape cancellation, successful deletion, failure retention, disabled repeat submit,
+  focus restored to Saved reports, date range filtering and invalid-range alert.
+- Viewport checks: 320, 390, 768 and 1280 px iframe viewports, no horizontal document
+  overflow. At scrollbars: content/client widths were 375/375, 753/753, 1265/1265;
+  320 narrow viewport measured 320/320. Mobile layout visually inspected.
+- Date test automation initially filled native fields without React updates; native
+  ArrowUp changes exercised the real handler and confirmed filtering/validation.
+- UI fixture loads no Firebase module or real account. Real sign-in, deployed Firestore
+  permissions, cross-user security enforcement and real backend remain UNVERIFIED.
+
+## Reproduce
+From repository root:
+
+```sh
+npm --prefix frontend run lint
+npm --prefix frontend test
+npm --prefix frontend run build
+python3 -m unittest discover -s tests
+node frontend/tests/ui-preview.mjs
+```
+
+Fixture URLs: `http://127.0.0.1:5180/`, `/?empty`, `/?load-error`, `/?delete-error`.
+Viewport harness: `/tests/viewport.html?width=390` (also 320, 768, 1280).
+These files are outside the production entry point and are not copied by Vite build.
+
+## Remaining limitations and next step
+- History uses on-demand reads, not a live listener. Changes in other tabs require
+  revisiting/reloading. Local deletion updates immediately after server success.
+- Search/sort become archive-wide only after all batches are loaded; no backend
+  full-text index is present. Full snapshots are downloaded with each batch.
+- Dashboard now uses a five-document listener and aggregate counts; see Phase A below.
+- Rules must be checked/tested in an authorized Firebase emulator/project before
+  claiming deployed owner isolation. Frontend path checks are not a security boundary.
+- Next: demo refinements and secure read-only Live
+  Mode; route splitting to address the bundle warning. No live API/public deployment
+  before authentication/authorization and privileged-route isolation are implemented.
+
+
+## Phase A — Dashboard navigation and operational polish
+
+### Implemented
+- Responsive sidebar/navigation with Overview, My Investigations, Demo lab and Live
+  connection status; visible navigation on mobile and a keyboard skip link.
+- Quick actions for the public demo, saved investigations and live availability.
+- Five newest dated investigations in a cleaned-up report list, with View All.
+  Undated legacy reports remain accessible in the archive and are counted in totals.
+- Firestore aggregate queries for total/Demo/Live counts. No history-wide document
+  download. Source-less records are included in total, not invented as Live records.
+- Counts are server reads on entry/Refresh workspace, with the check time displayed.
+  They are not advertised as a continuously synchronized transactional snapshot.
+- Recent reports retain a bounded real-time listener and show cached-data provenance.
+- Independent count/list errors, refresh/retry, skeletons, empty/legacy onboarding.
+- Account provider and email-verification information, broken-photo initials fallback,
+  logout progress/repeat-submit guard and error recovery.
+- Live action goes to the actual disconnected status panel, not an unimplemented
+  route. Backend availability is explicitly not checked, no telemetry is fabricated,
+  and no privileged Flask endpoint is called.
+
+### Files for this phase
+- Created: `frontend/src/services/dashboard.js`, `frontend/src/styles/Dashboard.css`,
+  `frontend/tests/dashboard.test.mjs`.
+- Updated: `frontend/src/pages/UserDashboard.jsx`, fixture server/viewport harness,
+  and this progress document. Existing investigations changes remain intact.
+
+### Verification on 26 October 2026
+- Lint: PASS, exit 0, no errors/warnings.
+- Frontend tests: PASS, 13 total (9 existing + 4 dashboard service tests), 0 failures.
+  New coverage: aggregate owner paths and all-record totals, five-document listener,
+  cache metadata, cleanup, permission failures and session-switch protection.
+- Build: PASS, 1971 modules, JS 927.06 kB (279.46 kB gzip), CSS 66.05 kB.
+  Existing >500 kB bundle warning remains; not suppressed.
+- Python tests: PASS, 2 tests. `git diff --check`: PASS.
+- Synthetic browser checks: populated metrics/five reports, broken image fallback,
+  new-user onboarding, legacy-only archive messaging, count failure/retry, recent-list
+  failure with working counts, cached empty data, logout failure and success routing
+  to `/login`, Live status anchor. All PASS.
+- Viewports: 320/390/768/1280 px checked; content width matched client width with no
+  horizontal document overflow. Mobile and desktop layouts visually inspected.
+- Production sign-in, Firestore aggregate permissions and deployed security rules
+  remain unverified; UI checks use fixtures with no production data access.
+- Test fixture server stopped after checks; other development servers untouched.
+
+### Git milestones
+- User explicitly approved separate feature commits and push to `origin/main`.
+- `b5a34ba`: feat: add saved investigation management.
+- `d77a420`: feat: polish dashboard navigation and operational summaries.
+- Push succeeded: `14e3ea9..d77a420 main -> main`; local origin/main also resolves
+  to d77a42045ce181e4edac9714e2f783b65134b2de. No force push or history rewriting.
+- Phase B was subsequently approved, committed as `8d1bb28`, and pushed to origin/main.
+
+## Phase B — Demo enhancements
+
+### Completed
+- Added independent static scenario loader and request-keyed hook. Changes and reloads
+  invalidate old data during render, before effects; aborted responses cannot replace
+  the selected snapshot. Failed/loading requests cannot show false healthy results.
+- Reset to healthy and reload controls clear selection; provenance explains that reload
+  reads a prerecorded fixture, not fresh diagnosis/telemetry. Missing timestamps stay
+  unavailable. All four JSON fixtures and schemas are unchanged.
+- Router nodes and links support keyboard and pointer inspection. Wider SVG hit targets,
+  selected-state cues, focus on inspection, focus return on close, and corrected node/link
+  geometry improve usability. Mobile status labels remain visible, not color-only.
+- Router context exposes recorded collection status, findings, adjacent links and cited
+  peer evidence. Link context distinguishes recorded physical/BGP state; absent details
+  are not inferred as facts.
+- Selected evidence is highlighted in the full timeline using direct associations and
+  explicit evidence IDs. Multiple faults keep their evidence/hypotheses separate.
+- Findings distinguish physical observations, routing observations, and possible downstream
+  BGP symptoms where a physical-link hypothesis exists. No invented confidence scores.
+- Subtle selection/hover transitions and reduced-motion support; no invented traffic.
+- Save uses the exact clicked snapshot, guards repeated submissions, handles permission
+  failures, and links directly to the saved report. Old completion feedback is discarded
+  after scenario/session changes. Public users are directed to login before saving.
+
+### Files
+Created: `frontend/src/services/demoScenarios.js`, `frontend/src/hooks/useDemoScenario.js`,
+`frontend/src/styles/DemoEnhancements.css`, `frontend/tests/demo.test.mjs`.
+Modified: DemoDashboard, SaveInvestigation, isolated fixture/viewport harness, this log.
+
+### Final checks
+- `npm --prefix frontend run lint`: PASS, exit 0, no errors/warnings.
+- `npm --prefix frontend test`: PASS, 19 tests, 0 failed/skipped (six new demo tests).
+  Node experimental module-mocking notice remains.
+- `npm --prefix frontend run build`: PASS, 1974 modules. JS 931.90 kB (280.82 kB gzip),
+  CSS 68.89 kB. Existing >500 kB bundle warning remains and is not suppressed.
+- `python3 -m unittest discover -s tests`: PASS, 2 tests.
+- `git diff --check`: PASS.
+- Browser fixtures: all four scenarios rendered; rapid switching, delayed reload hiding
+  old snapshots/disabled Save, keyboard link/router inspection, map pointer hit targets,
+  selected evidence counts, router peer evidence, close focus, reset, HTTP 503 failure,
+  recovery, public demo/login navigation, permission-denied save/retry and saved report
+  link all PASS. Multiple faults: physical link highlights five evidence records;
+  routing context has six. Successful save during reset retained multiple_faults and
+  eleven evidence records, one request; no stale saved badge on the new scenario.
+- Responsive checks: 320/390/768/1280 px, no horizontal document overflow; mobile
+  topology visually reviewed. R4/R5 spacing and link-to-node alignment corrected.
+- UI save tests use an in-memory fixture service. Production Firebase writes, deployed
+  rules and real authentication remain unverified. No VM/Docker/privileged API calls.
+- Fixture server stopped after checks. Existing development servers left untouched.
+
+### Remaining limitations / next step
+- Existing login flow still lands on the dashboard; returning directly to a selected
+  scenario after sign-in is a future authentication-flow refinement.
+- Phase B does not add live telemetry. Secure Live Mode must first add server-side token
+  verification/authorization and isolate privileged refresh from the public API.
+- Approved commit `8d1bb28 feat: enhance demo inspection and snapshot safety`
+  was pushed to origin/main; remote advanced from d77a420 to 8d1bb28.
+
+## Phase C — Secure read-only Live Mode (27 October 2026)
+
+### Completed and pushed as bae01be
+- Added protected Live workspace and dashboard navigation, stored topology/router
+  inspection, BGP observations, correlated causes/evidence, estimated impact and
+  stored incident history. API reachability is separate from telemetry freshness.
+- Added Firebase Admin ID-token verification with revocation checks, explicit
+  project and UID authorization, exact-origin CORS, no-store headers and fail-closed
+  authentication errors. Legacy data routes now require bearer authorization.
+- Added read-only `/api/live/snapshot`, explicit telemetry storage configuration,
+  bounded file reads and sanitized output. Tests assert no collection, save or
+  incident update is called. Physical link state remains unmeasured.
+- Administrative refresh disabled by default, requires additional admin authorization
+  when enabled, and rejects browser Origin requests. Development server is loopback-only.
+- Added HTTPS-only client configuration (loopback exception), token/response session
+  guards, timeout/abort handling, disabled redirects/cookies and optional visible-page
+  polling. Access denial clears data; connection loss retains a labeled last snapshot.
+- Fixed unknown-time handling: the browser now preserves the backend's unknown
+  freshness classification even when it can parse the timestamp locally.
+- Added `requirements.txt`, backend/client tests and `docs/LIVE_MODE.md` with
+  configuration, proposed ingress boundary and deployment/integration limitations.
+
+### Final checks
+- `npm --prefix frontend run lint`: PASS, exit 0, no lint diagnostics.
+- `npm --prefix frontend test`: PASS, 27 tests, 0 failures/skipped; experimental
+  Node module-mocking notice remains. Includes eight Live API client tests.
+- `npm --prefix frontend run build`: PASS, 1977 modules; existing >500 kB JS
+  chunk warning remains. No warning suppression added.
+- `/private/tmp/netscope-live-venv/bin/python -m unittest discover -s tests`:
+  PASS, 11 tests (nine new security/read-only API tests), no failures.
+- `git diff --check`: PASS.
+- Isolated browser fixtures: PASS for stale snapshot, router filtering, link-related
+  evidence, denied access with polling disabled, unconfigured controls disabled,
+  connection loss retaining labeled last-known data, and polling checkbox toggle.
+- Responsive harness checked 320/390/768/1280 px frames with no horizontal content
+  overflow reported; mobile and desktop screenshots reviewed. Browser fixture uses
+  synthetic services, not actual Firebase tokens or VM data. Timed background polling
+  and deployed end-to-end auth were not exercised in the browser.
+- Fixture server stopped after checks. Existing changes preserved; Phase C was
+  approved, committed and pushed as bae01be. No deployment, production writes, VM/Docker operations or fault injection.
+
+### Approval / remaining activation
+- User approved commit `feat: add authenticated read-only live monitoring`
+  and push to origin/main on 27 October 2026.
+- Real ADC credentials, Firebase token validation, authorized UID/origin configuration,
+  HTTPS ingress and VM integration need operator verification before activation.
+  No tunnel or public API exposure was provisioned.
+
+
+## Phase D — Fault Investigation Workspace (27 October 2026)
+
+### Completed
+- Added protected `/dashboard/investigate`, linked from the dashboard sidebar and
+  Live workspace. Source/scenario selection, explicit start, captured result,
+  context inspection, investigative guidance and save form one workflow.
+- Demo reviews unchanged prerecorded diagnoses. Live calls the existing authenticated
+  read-only snapshot endpoint, which computes diagnosis from stored telemetry. No
+  collection, active probes, commands or fault injection were added.
+- Results are detached from loader updates. Source/scenario/session changes unmount
+  the run, cancel pending reads and clear old results. Starting again removes the
+  prior saveable snapshot. Observation, review-start and capture times remain distinct.
+- Router/link context correlates findings, hypotheses and evidence, including backend
+  peer observations. Multiple independent demo faults retain separate evidence sets.
+  Full-result impact is labeled separately from filtered context. No confidence scores.
+- Suggested investigative steps are explicitly unexecuted operator recommendations.
+  Missing observations, incomplete collection and uncertainty remain visible.
+- Extended existing save service for Live provenance and capture metadata, preserving
+  old demo snapshots and JSON format. Saves require matching current UID and reject
+  snapshots exceeding 800,000 UTF-8 bytes. Explicit Live save describes the copy into
+  private Firestore history. No automatic writes.
+- Report viewer retains capture provenance and supports backend incident field names;
+  estimated Live impact is no longer labeled confirmed physical-link failure.
+- Browser review fixed a shared 320px minimum-width overflow with classic scrollbars;
+  html/body now shrink to the available viewport. Updated viewport harness reports
+  body width as well as document width.
+
+### Files
+Created: `frontend/src/pages/FaultInvestigation.jsx`,
+`frontend/src/services/faultInvestigation.js`,
+`frontend/src/styles/FaultInvestigation.css`,
+`frontend/tests/faultInvestigation.test.mjs`.
+Modified: App routing, UserDashboard navigation, LiveMonitoring navigation,
+InvestigationDetails, investigations save service, index.css, investigation tests,
+isolated UI/viewport harness and progress documentation.
+
+### Verification
+- Frontend lint: PASS, no diagnostics.
+- Frontend tests: PASS, 34 tests, 0 failed/skipped (seven new Phase D tests).
+  Covers all four demo results, snapshot detachment, independent fault evidence,
+  Live normalization, cancellation/session changes, errors, uncertainty guidance,
+  Live save provenance and payload limits. Existing module-mocking notice remains.
+- Production build: PASS; existing >500 kB bundle warning remains.
+- Backend unittest suite: PASS, 11 tests; backend implementation unchanged in Phase D.
+- `git diff --check`: PASS.
+- Browser fixture: multiple-fault result shows five findings/two causes/eleven evidence
+  records; R2-R4 selection shows three findings/one cause/five evidence records.
+  Saving this filtered view preserved all eleven evidence records, one request,
+  and displayed the saved report link. Source switching cleared the previous result.
+- Browser fixture: Live stored-snapshot result, physical-state uncertainty, stale
+  label and operator guidance render; permission-denied save remains retryable;
+  offline Live returns error with no result/save action. Healthy snapshot correctly
+  shows absent observation time and no-evidence caveats.
+- Responsive checks at 320/390/768/1280px frame widths report no document/body overflow.
+  Populated 320px workflow and desktop layout visually reviewed.
+
+### Boundaries / next action
+- All UI/service tests use synthetic or mocked services. No production Firestore
+  writes or auth configuration changes. Deployed owner rules and real Firebase/VM
+  integration remain unverified, as documented in LIVE_MODE.md.
+- Phase D committed as `b234853` after user approval on 31 October 2026:
+  `feat: add evidence-based fault investigation workspace` and push to origin/main.
+- Next development phase after approval: Phase E Reports and Export.
+
+
+## Phase E — Reports and Export (31 October 2026)
+
+### Implemented
+- Report tools on saved investigation details: metadata-only by default, explicit
+  section selection for findings/hypotheses, evidence, incidents, impact and saved
+  operator notes. Prepare a visible preview before downloading JSON or printing.
+- JSON uses a versioned report format with source, observation/capture/save/export
+  times and uncertainty disclaimer. Export is a selected report, not a full backup.
+  An allowlist excludes arbitrary fields, raw telemetry, credentials and config.
+  Selected free-text may still contain sensitive content; review before sharing.
+- Print stylesheet prints only the prepared preview. Print / Save as PDF invokes
+  the browser dialog; no external export service or new PDF dependency. The user
+  chooses Save as PDF. Actual PDF pagination/output has NOT yet been verified.
+- Notes use owner-scoped updateDoc and modify only notes/notesUpdatedAt, with a
+  10,000-character limit, duplicate-submit guard and retained draft on failure.
+  Exports include saved notes only. Writes replace notes (last write wins); no
+  collaborative editing or conflict merging. Original evidence is unchanged.
+- Details are keyed by account/report to clear the old result immediately during
+  session/navigation changes; document ID comes from Firestore rather than payload.
+- Existing legacy metadata reports and malformed JSON can still export metadata.
+  No migrations, production writes, Firebase rule changes or deployment performed.
+
+### Files
+Added `frontend/src/components/ReportTools.jsx`, `frontend/src/styles/ReportTools.css`,
+`frontend/src/utils/reportExport.js`, `frontend/src/services/reportNotes.js` and
+`frontend/tests/reportExport.test.mjs`. Updated InvestigationDetails and the isolated
+UI/viewport harness, retaining every existing Phase D change.
+
+### Verification
+- `npm --prefix frontend run lint`: PASS, no diagnostics.
+- `npm --prefix frontend test`: PASS, 41 tests, 0 failures/skipped. Seven new tests
+  cover opt-in fields, credential-field exclusion, legacy/corrupt snapshots, Live
+  provenance, filenames and owner-scoped/validated notes writes. Node experimental
+  module-mocking warning remains.
+- `npm --prefix frontend run build`: PASS, 1984 modules; JS 964.23 kB (289.31 kB gzip),
+  CSS 73.16 kB. Existing >500 kB bundle warning remains.
+- Backend tests initially could not run because the prior temporary virtualenv had
+  expired and system Python lacked firebase_admin. Recreated the temporary venv and
+  installed existing requirements; final unittest run: PASS, 11 tests.
+- `git diff --check`: PASS.
+- Browser synthetic fixture: saved notes success; permission denial preserves draft;
+  selected metadata/notes preview; full selected report with 5 findings, 2 hypotheses,
+  11 evidence records and 2 incidents; JSON download action feedback all verified.
+  JSON payload content verified in unit tests; downloaded file not inspected in UI.
+- Responsive fixture: 320/390/768/1280px frames, no horizontal document/body overflow.
+- Print click blocked embedded-browser control; the app containing its dialog is
+  unavailable to computer-use tools. Closed the temporary tab. PDF output/pagination
+  remains a manual browser verification item; do not claim verified PDF delivery.
+- Fixture server stopped after checks. Optional comparison is deferred.
+
+### Approval / next step
+- User approved both commits and push on 31 October 2026. Phase D is `b234853`.
+- Approved Phase E commit message:
+  `feat: add reviewed report exports and operator notes`.
+- Complete a browser Save as PDF check before release. Real Firestore rule permission
+  for notes updates and real Live/Firebase integration remain unverified.
+- Next implementation phase: Phase F Account and Workspace Settings.
+
+
+## Phase F — Account and Workspace Settings (31 October 2026)
+
+### Completed locally
+- Protected account settings with display-name editing, current photo removal,
+  initials fallback and authenticated profile refresh across the workspace.
+- Provider-aware controls: Google-only accounts do not expose password change;
+  email/password changes reauthenticate before mutation. Linked providers supported.
+- Email verification request/status refresh; public reset page with generic delivery
+  feedback and login link. Passwords cleared from settings state after operations.
+- Typed DELETE confirmation, focus management, same-identity reauthentication and
+  server-only empty-workspace checks before Auth deletion. Existing records never
+  bulk-deleted. Remaining reports/profile data, offline reads and permission errors
+  block deletion. No real account operations were executed during development.
+- Session guards before/after asynchronous identity verification, duplicate-operation
+  guard, mapped provider errors and safe feedback. Current user/profile context refresh.
+- Added `docs/ACCOUNT_SETTINGS.md` with cleanup strategy and release limitations.
+
+### Files
+Created AccountSettings.jsx, ResetPassword.jsx, services/account.js,
+styles/AccountSettings.css and tests/account.test.mjs. Updated App routes,
+AuthContext, Login reset link, UserDashboard navigation and isolated UI harness.
+
+### Checks
+- `npm --prefix frontend run lint`: PASS, no diagnostics.
+- `npm --prefix frontend test`: PASS, 51 tests, 0 failed/skipped; ten new account tests.
+  Includes provider handling, owner/name validation, password checks/reauthentication,
+  account-switch race, empty/nonempty account deletion, offline failure and safe errors.
+- `npm --prefix frontend run build`: PASS, 1988 modules; JS 978.78 kB (292.96 kB gzip),
+  CSS 74.08 kB. Existing >500 kB bundle warning remains.
+- Python unittest discovery in temporary venv: PASS, 11 tests. Backend unchanged.
+- `git diff --check`: PASS.
+- Synthetic browser UI: Google-only password guidance, profile update, verification
+  request and status refresh, typed deletion confirmation, remaining-data block,
+  cancel focus restoration, password mismatch/success feedback and generic public
+  reset feedback all PASS. No real emails, credentials or deletion used.
+- Responsive 320/390/768/1280px frames show no horizontal document/body overflow;
+  desktop settings screenshot reviewed. Fixture server stopped after checks.
+
+### Limitations and next step
+- Empty-account deletion is guarded for the current schema, not an atomic cleanup
+  guarantee: concurrent writes or unknown subcollections require trusted server
+  cleanup and deployed write-blocking rules. Production cleanup remains open.
+- Real Firebase email delivery, recent-login enforcement, Google popups, project
+  password policy and deployed owner rules need disposable-project integration tests.
+- User approved `feat: add provider-aware account settings and recovery`
+  and push to origin/main on 31 October 2026.
+- Next roadmap phase: Phase G UI/UX polish. Phase E PDF verification remains open.
+
+## Phases G, H, I and J — combined delivery (31 October 2026)
+
+Status: implemented locally, awaiting approval for one combined commit and push.
+Phase F was committed and pushed as `bf27cfb` before this work.
+
+### G — UI and accessibility polish
+- Shared visible keyboard focus, reduced-motion CSS, improved auth contrast and
+  underlined links; mobile input sizing and persistent signup password guidance.
+- Announced session/loading states and busy auth forms; accessible route loading
+  and recovery view with reload/home actions.
+- Synthetic Login/Signup fixture added. Both pages verified at 320, 390, 768 and
+  1280px: document/body widths match their available frame widths, no overflow.
+- Synthetic invalid login displays mapped error; keyboard focus outline visible.
+  No real sign-in, mail or account mutation was performed. Reduced-motion CSS was
+  reviewed; OS preference and screen-reader behavior have not been tested.
+
+### H — performance
+- Lazy imports for every route; Auth initialization separated from Firestore so
+  database code loads with routes that need it. Existing service facade preserved.
+- Production entry JS reduced from 978.78 kB (292.96 gzip) to 374.56 kB
+  (116.81 gzip), about 62% smaller. Deferred Firebase chunk 468.82 kB; page chunks
+  1.52–26.56 kB. Entry CSS 3.92 kB. No oversized-chunk warning or threshold change.
+- These are build artifact sizes, not measured network latency/Lighthouse scores.
+
+### I — regression coverage
+- Eight new regression cases cover account changes during deletion preflight,
+  failed reauthentication, UTF-8 save limits, detached saved snapshots, session
+  changes during response reads, cancellation, malformed responses and missing auth.
+- Frontend tests: PASS, 59 tests, 0 failures/cancelled/skipped (exit 0).
+- Backend tests: PASS, 11 tests (exit 0), temporary isolated Python environment.
+- Frontend lint: PASS (exit 0), rerun after fixture additions.
+- Production build: PASS (exit 0), 1990 modules; no chunk warning.
+- `git diff --check`: PASS (exit 0).
+
+### J — deployment preparation
+- Added root Firebase Hosting configuration with SPA fallback and conservative
+  cache/security headers, ignored CLI state, public environment template, and
+  GitHub Actions frontend/backend checks. CI does not deploy or use credentials.
+- Added DEPLOYMENT.md covering explicit project selection, HTTPS/authorized domains,
+  separate environments, API ingress, release smoke checks and rollback.
+- Configuration is prepared only: Firebase CLI hosting validation and remote CI
+  execution have not run. No public deployment or production rule change occurred.
+- Remaining release gates: real Firebase/Auth/rules integration, trusted atomic
+  account cleanup, browser PDF output, real-device accessibility, production Live
+  ingress and post-deploy verification. See DEPLOYMENT.md and ACCOUNT_SETTINGS.md.
+- Local synthetic fixture stopped after verification. All changes remain uncommitted.
+
+## Submission deployment connection — in progress
+- User selected Vercel frontend, Render Free backend, existing Ubuntu lab VM and
+  existing Firestore storage; no paid service authorized.
+- SSH key connection verified. All five router containers running. VM has only
+  about 78 MB free; no cleanup, package installation or reset performed.
+- Added authenticated bounded telemetry ingestion, Firestore latest-snapshot read,
+  disk-free stdlib VM uploader, Gunicorn dependency and Vercel SPA configuration.
+- Backend tests: PASS, 17 tests including six ingestion/storage/auth checks.
+  Git whitespace check PASS. Real cloud ingestion is not yet verified.
+- Deployment still pending account access, Admin secret provisioning, private
+  telemetry Firestore rule verification, approved UID/CORS configuration and
+  commit/push approval. No cloud resources or VM uploader started yet.
