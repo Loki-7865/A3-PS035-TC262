@@ -1,0 +1,11 @@
+.account-page form { max-width:560px; }
+.account-page label { display:block; margin:16px 0 8px; font-size:14px; font-weight:600; }
+.account-page input:not([type=checkbox]),.account-page select { display:block; width:100%; max-width:560px; padding:12px; background:#fff; color:#30352f; border:1px solid #b9b0a0; border-radius:8px; font:inherit; }
+.account-page button { margin:12px 12px 12px 0; }
+.account-page .account-check { display:flex; align-items:center; gap:10px; }
+.account-avatar { display:flex; align-items:center; gap:20px; overflow-wrap:anywhere; }
+.account-avatar img,.account-avatar > span { width:64px; height:64px; border-radius:50%; object-fit:cover; background:#e9dfcd; display:grid; place-items:center; flex-shrink:0; font-size:26px; }
+.account-notice,.account-error { padding:16px; border-radius:10px; background:#e8efdf; }
+.account-page .account-error { background:#fce6df; color:#8a3020; }
+.account-danger { border-color:#c87a67; }
+.account-page a { text-decoration:underline; }

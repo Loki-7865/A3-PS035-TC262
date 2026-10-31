@@ -3,10 +3,9 @@
 ## Current milestone
 My Investigations, Phase A and Phase B are committed and pushed. Phase B is
 `8d1bb28` on origin/main. Phase C was committed and pushed as `bae01be`.
-Phase D is committed as `b234853`. Phase E is verified and approved for commit/push
-on 31 October 2026; both features will be pushed together.
-Phase E adds selected report exports and operator notes; browser PDF output still
-needs verification in a browser with an accessible print dialog.
+Phase D (`b234853`) and Phase E (`fa39780`) are committed and pushed to origin/main.
+Phase F account settings are verified and approved for commit/push on 31 October 2026.
+PDF output verification and production account cleanup guarantees remain open.
 Existing work was preserved throughout. No production records were deleted and no
 deployment was performed. See the Git milestones below for approved commits.
 
@@ -378,3 +377,52 @@ UI/viewport harness, retaining every existing Phase D change.
 - Complete a browser Save as PDF check before release. Real Firestore rule permission
   for notes updates and real Live/Firebase integration remain unverified.
 - Next implementation phase: Phase F Account and Workspace Settings.
+
+
+## Phase F — Account and Workspace Settings (31 October 2026)
+
+### Completed locally
+- Protected account settings with display-name editing, current photo removal,
+  initials fallback and authenticated profile refresh across the workspace.
+- Provider-aware controls: Google-only accounts do not expose password change;
+  email/password changes reauthenticate before mutation. Linked providers supported.
+- Email verification request/status refresh; public reset page with generic delivery
+  feedback and login link. Passwords cleared from settings state after operations.
+- Typed DELETE confirmation, focus management, same-identity reauthentication and
+  server-only empty-workspace checks before Auth deletion. Existing records never
+  bulk-deleted. Remaining reports/profile data, offline reads and permission errors
+  block deletion. No real account operations were executed during development.
+- Session guards before/after asynchronous identity verification, duplicate-operation
+  guard, mapped provider errors and safe feedback. Current user/profile context refresh.
+- Added `docs/ACCOUNT_SETTINGS.md` with cleanup strategy and release limitations.
+
+### Files
+Created AccountSettings.jsx, ResetPassword.jsx, services/account.js,
+styles/AccountSettings.css and tests/account.test.mjs. Updated App routes,
+AuthContext, Login reset link, UserDashboard navigation and isolated UI harness.
+
+### Checks
+- `npm --prefix frontend run lint`: PASS, no diagnostics.
+- `npm --prefix frontend test`: PASS, 51 tests, 0 failed/skipped; ten new account tests.
+  Includes provider handling, owner/name validation, password checks/reauthentication,
+  account-switch race, empty/nonempty account deletion, offline failure and safe errors.
+- `npm --prefix frontend run build`: PASS, 1988 modules; JS 978.78 kB (292.96 kB gzip),
+  CSS 74.08 kB. Existing >500 kB bundle warning remains.
+- Python unittest discovery in temporary venv: PASS, 11 tests. Backend unchanged.
+- `git diff --check`: PASS.
+- Synthetic browser UI: Google-only password guidance, profile update, verification
+  request and status refresh, typed deletion confirmation, remaining-data block,
+  cancel focus restoration, password mismatch/success feedback and generic public
+  reset feedback all PASS. No real emails, credentials or deletion used.
+- Responsive 320/390/768/1280px frames show no horizontal document/body overflow;
+  desktop settings screenshot reviewed. Fixture server stopped after checks.
+
+### Limitations and next step
+- Empty-account deletion is guarded for the current schema, not an atomic cleanup
+  guarantee: concurrent writes or unknown subcollections require trusted server
+  cleanup and deployed write-blocking rules. Production cleanup remains open.
+- Real Firebase email delivery, recent-login enforcement, Google popups, project
+  password policy and deployed owner rules need disposable-project integration tests.
+- User approved `feat: add provider-aware account settings and recovery`
+  and push to origin/main on 31 October 2026.
+- Next roadmap phase: Phase G UI/UX polish. Phase E PDF verification remains open.

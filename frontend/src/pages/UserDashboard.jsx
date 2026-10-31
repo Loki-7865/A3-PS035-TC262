@@ -43,6 +43,7 @@ function DashboardWorkspace() {
           <NavLink to="/dashboard/investigations"><FolderSearch size={18} />My Investigations</NavLink>
           <Link to="/demo"><Network size={18} />Demo lab</Link>
           <NavLink to="/dashboard/investigate"><FolderSearch size={18} />Investigate a fault</NavLink>
+          <NavLink to="/dashboard/settings"><LayoutDashboard size={18} />Account settings</NavLink>
           <NavLink to="/dashboard/live"><Radio size={18} />Live monitoring</NavLink>
         </nav>
         <div className="dashboard-sidebar-note"><span className="dashboard-offline-dot" />Live status not checked<p>Your saved reports and demo remain available without the network lab.</p></div>

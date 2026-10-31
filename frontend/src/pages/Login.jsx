@@ -120,6 +120,7 @@ export default function Login() {
             </button>
           </form>
 
+          <p><Link to="/reset-password">Forgot your password?</Link></p>
           <p className="auth-switch">
             New to NETSCOPE? <Link to="/signup">Create an account</Link>
           </p>

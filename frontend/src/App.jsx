@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import Landing from "./pages/Landing";
 import DemoDashboard from "./DemoDashboard";
 
+import AccountSettings from "./pages/AccountSettings";
+import ResetPassword from "./pages/ResetPassword";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
 
@@ -25,6 +27,9 @@ export default function App() {
         <Route path="/demo" element={<DemoDashboard />} />
 
         <Route path="/signup" element={<Signup />} />
+
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/dashboard/settings" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
 
         <Route path="/login" element={<Login />} />
 

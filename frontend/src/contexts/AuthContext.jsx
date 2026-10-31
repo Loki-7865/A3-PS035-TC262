@@ -7,6 +7,7 @@ import {
   signInWithPopup,
   signOut,
   GoogleAuthProvider,
+  reload,
 } from "firebase/auth";
 
 import { auth } from "../services/firebase";
@@ -15,6 +16,7 @@ import { AuthContext } from "./authState";
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
+  const [profileRevision, setProfileRevision] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -52,7 +54,16 @@ export function AuthProvider({ children }) {
     return signOut(auth);
   }
 
+  async function refreshProfile() {
+    const user = auth.currentUser;
+    if (!user) return;
+    await reload(user);
+    if (auth.currentUser?.uid === user.uid) setProfileRevision(value => value + 1);
+  }
+
   const value = {
+    refreshProfile,
+    profileRevision,
     currentUser,
     loading,
     signup,
