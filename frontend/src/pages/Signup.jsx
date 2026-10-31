@@ -107,15 +107,17 @@ export default function Signup() {
             onClick={handleGoogleSignup}
             disabled={loading}
           >
-            <span className="auth-google-icon">G</span>
+            <span className="auth-google-icon" aria-hidden="true">G</span>
             Continue with Google
           </button>
+
+          <p className="auth-progress" role="status">{loading ? "Creating your account…" : ""}</p>
 
           <div className="auth-divider">
             <span>or continue with email</span>
           </div>
 
-          <form onSubmit={handleSignup}>
+          <form onSubmit={handleSignup} aria-busy={loading}>
             <label htmlFor="signup-name">Full name</label>
             <input
               id="signup-name"
@@ -135,6 +137,8 @@ export default function Signup() {
               type="email"
               placeholder="you@example.com"
               autoComplete="email"
+              autoCapitalize="none"
+              spellCheck={false}
               value={form.email}
               onChange={updateField}
               required
@@ -145,12 +149,16 @@ export default function Signup() {
               id="signup-password"
               name="password"
               type="password"
-              placeholder="At least 6 characters"
+              placeholder="Choose a password"
+              minLength={6}
+              aria-describedby="signup-password-hint"
               autoComplete="new-password"
               value={form.password}
               onChange={updateField}
               required
             />
+
+            <p id="signup-password-hint" className="auth-field-hint">Use at least 6 characters.</p>
 
             <label htmlFor="signup-confirm">Confirm password</label>
             <input

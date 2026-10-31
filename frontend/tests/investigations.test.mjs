@@ -98,3 +98,18 @@ test('live saves retain source and capture metadata, reject mismatched sessions 
   await assert.rejects(saveInvestigation({uid:'owner'},{...data,provenance:null}),/provenance/);
   await assert.rejects(saveInvestigation({uid:'owner'},{...data,evidence:[{message:'x'.repeat(800001)}]}),/too large/);
 });
+test('save size limit counts UTF-8 bytes and rejects before writing',async()=> {
+  const data=JSON.parse(await readFile(new URL('../public/demo/scenarios/healthy.json',import.meta.url)));
+  saved=null;
+  await assert.rejects(saveInvestigation({uid:'owner'},{...data,evidence:[{message:'🌐'.repeat(210000)}]}),/too large/);
+  assert.equal(saved,null);
+});
+test('saved snapshots are detached from later mutations to the active investigation',async()=> {
+  const data=JSON.parse(await readFile(new URL('../public/demo/scenarios/healthy.json',import.meta.url)));
+  await saveInvestigation({uid:'owner'},data);
+  const original=saved.record.snapshotJson;
+  data.diagnosis.findings.push({message:'later mutation'});
+  data.scenario.name='Changed after save';
+  assert.equal(saved.record.snapshotJson,original);
+  assert.notEqual(JSON.parse(original).scenario.name,data.scenario.name);
+});

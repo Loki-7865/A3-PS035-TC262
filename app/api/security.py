@@ -1,5 +1,6 @@
 """Fail-closed API authorization. No browser credentials or trust in CORS."""
 import os
+import hmac
 from threading import Lock
 from flask import jsonify, request
 
@@ -11,7 +12,7 @@ def values(name):
     return {value.strip() for value in os.environ.get(name, '').split(',') if value.strip()}
 
 
-def verify_token(token):
+def firebase_app():
     # An emulator must never silently disable signature verification on this API.
     if os.environ.get('FIREBASE_AUTH_EMULATOR_HOST'):
         raise RuntimeError('Emulator authentication is not supported by this server')
@@ -19,12 +20,16 @@ def verify_token(token):
     if not project:
         raise RuntimeError('Server authentication is not configured')
     import firebase_admin
-    from firebase_admin import auth
     global _app
     with _lock:
         if _app is None:
             _app = firebase_admin.initialize_app(options={'projectId': project}, name='netscope-live')
-    return auth.verify_id_token(token, app=_app, check_revoked=True)
+    return _app
+
+
+def verify_token(token):
+    from firebase_admin import auth
+    return auth.verify_id_token(token, app=firebase_app(), check_revoked=True)
 
 
 def install_security(app):
@@ -33,6 +38,13 @@ def install_security(app):
         if not request.path.startswith('/api/'):
             return None
         origin = request.headers.get('Origin')
+        if request.path == '/api/telemetry/ingest':
+            secret = os.environ.get('NETSCOPE_INGEST_TOKEN', '')
+            supplied = request.headers.get('Authorization', '')
+            if (origin or request.method != 'POST' or os.environ.get('NETSCOPE_TELEMETRY_STORAGE') != 'firestore'
+                    or len(secret) < 32 or not hmac.compare_digest(supplied.encode('utf-8'), ('Bearer ' + secret).encode('utf-8'))):
+                return jsonify(error='Telemetry upload denied.'), 403
+            return None
         if origin and origin not in values('NETSCOPE_ALLOWED_ORIGINS'):
             return jsonify(error='Origin is not allowed.'), 403
         # Administrative collection is not a browser operation and is disabled by default.

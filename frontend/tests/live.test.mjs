@@ -39,3 +39,26 @@ test('aborted requests do not submit tokens',async()=> {
   const controller=new AbortController(); controller.abort();
   await assert.rejects(fetchLiveSnapshot({endpoint:'https://api.example',user,signal:controller.signal,fetcher:()=>assert.fail('fetch called')}),{name:'AbortError'});
 });
+test('session change while response body loads discards the old account snapshot',async()=> {
+  let uid=user.uid;
+  await assert.rejects(fetchLiveSnapshot({endpoint:'https://api.example',user,currentUid:()=>uid,fetcher:async()=>({ok:true,json:async()=>{uid='other';return snapshot;}})}),/session changed/);
+});
+test('cancellation while response body loads rejects and aborts transport',async()=> {
+  const controller=new AbortController();
+  let transportSignal;
+  await assert.rejects(fetchLiveSnapshot({endpoint:'https://api.example',user,signal:controller.signal,fetcher:async(_url,options)=> {
+    transportSignal=options.signal;
+    return {ok:true,json:()=>{controller.abort();return new Promise(()=>{});}};
+  }}),{name:'AbortError'});
+  assert.equal(transportSignal.aborted,true);
+});
+test('malformed successful responses reject without returning a partial snapshot',async()=> {
+  for (const body of [null,{}, {...snapshot,incidents:[{assessment:{private:'value'}}]}, {...snapshot,routers:Array(101).fill({id:'R1',status:'unknown',collection_ok:false,findings_count:0})}]) {
+    await assert.rejects(fetchLiveSnapshot({endpoint:'https://api.example',user,fetcher:async()=>({ok:true,json:async()=>body})}),/snapshot/);
+  }
+});
+test('missing endpoint or identity never requests a token or network data',async()=> {
+  const fetcher=()=>assert.fail('fetch called');
+  await assert.rejects(fetchLiveSnapshot({endpoint:null,user,fetcher}),/not configured/);
+  await assert.rejects(fetchLiveSnapshot({endpoint:'https://api.example',user:null,fetcher}),error=>error.status===401);
+});

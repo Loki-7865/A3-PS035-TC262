@@ -426,3 +426,63 @@ AuthContext, Login reset link, UserDashboard navigation and isolated UI harness.
 - User approved `feat: add provider-aware account settings and recovery`
   and push to origin/main on 31 October 2026.
 - Next roadmap phase: Phase G UI/UX polish. Phase E PDF verification remains open.
+
+## Phases G, H, I and J — combined delivery (31 October 2026)
+
+Status: implemented locally, awaiting approval for one combined commit and push.
+Phase F was committed and pushed as `bf27cfb` before this work.
+
+### G — UI and accessibility polish
+- Shared visible keyboard focus, reduced-motion CSS, improved auth contrast and
+  underlined links; mobile input sizing and persistent signup password guidance.
+- Announced session/loading states and busy auth forms; accessible route loading
+  and recovery view with reload/home actions.
+- Synthetic Login/Signup fixture added. Both pages verified at 320, 390, 768 and
+  1280px: document/body widths match their available frame widths, no overflow.
+- Synthetic invalid login displays mapped error; keyboard focus outline visible.
+  No real sign-in, mail or account mutation was performed. Reduced-motion CSS was
+  reviewed; OS preference and screen-reader behavior have not been tested.
+
+### H — performance
+- Lazy imports for every route; Auth initialization separated from Firestore so
+  database code loads with routes that need it. Existing service facade preserved.
+- Production entry JS reduced from 978.78 kB (292.96 gzip) to 374.56 kB
+  (116.81 gzip), about 62% smaller. Deferred Firebase chunk 468.82 kB; page chunks
+  1.52–26.56 kB. Entry CSS 3.92 kB. No oversized-chunk warning or threshold change.
+- These are build artifact sizes, not measured network latency/Lighthouse scores.
+
+### I — regression coverage
+- Eight new regression cases cover account changes during deletion preflight,
+  failed reauthentication, UTF-8 save limits, detached saved snapshots, session
+  changes during response reads, cancellation, malformed responses and missing auth.
+- Frontend tests: PASS, 59 tests, 0 failures/cancelled/skipped (exit 0).
+- Backend tests: PASS, 11 tests (exit 0), temporary isolated Python environment.
+- Frontend lint: PASS (exit 0), rerun after fixture additions.
+- Production build: PASS (exit 0), 1990 modules; no chunk warning.
+- `git diff --check`: PASS (exit 0).
+
+### J — deployment preparation
+- Added root Firebase Hosting configuration with SPA fallback and conservative
+  cache/security headers, ignored CLI state, public environment template, and
+  GitHub Actions frontend/backend checks. CI does not deploy or use credentials.
+- Added DEPLOYMENT.md covering explicit project selection, HTTPS/authorized domains,
+  separate environments, API ingress, release smoke checks and rollback.
+- Configuration is prepared only: Firebase CLI hosting validation and remote CI
+  execution have not run. No public deployment or production rule change occurred.
+- Remaining release gates: real Firebase/Auth/rules integration, trusted atomic
+  account cleanup, browser PDF output, real-device accessibility, production Live
+  ingress and post-deploy verification. See DEPLOYMENT.md and ACCOUNT_SETTINGS.md.
+- Local synthetic fixture stopped after verification. All changes remain uncommitted.
+
+## Submission deployment connection — in progress
+- User selected Vercel frontend, Render Free backend, existing Ubuntu lab VM and
+  existing Firestore storage; no paid service authorized.
+- SSH key connection verified. All five router containers running. VM has only
+  about 78 MB free; no cleanup, package installation or reset performed.
+- Added authenticated bounded telemetry ingestion, Firestore latest-snapshot read,
+  disk-free stdlib VM uploader, Gunicorn dependency and Vercel SPA configuration.
+- Backend tests: PASS, 17 tests including six ingestion/storage/auth checks.
+  Git whitespace check PASS. Real cloud ingestion is not yet verified.
+- Deployment still pending account access, Admin secret provisioning, private
+  telemetry Firestore rule verification, approved UID/CORS configuration and
+  commit/push approval. No cloud resources or VM uploader started yet.

@@ -11,7 +11,7 @@
 .live-panel h3 { font-size:16px; }
 .live-page button { border:1px solid #d6ccbc; border-radius:10px; background:#f4eee4; color:#33392f; padding:10px 14px; font:inherit; font-size:13px; cursor:pointer; }
 .live-page button:disabled { cursor:default; opacity:.55; }
-.live-page :is(a,button,input):focus-visible { outline:3px solid #a94b30; outline-offset:3px; }
+.live-page :is(a,button,input,select,textarea):focus-visible { outline:3px solid #a94b30; outline-offset:3px; }
 .live-page button[aria-pressed=true] { border-color:#9e4e32; background:#fae4d4; }
 .live-routers,.live-links { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin:18px 0; }
 .live-routers button,.live-links button { display:flex; flex-direction:column; text-align:left; gap:6px; }

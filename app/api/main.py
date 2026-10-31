@@ -15,6 +15,8 @@ from app.diagnosis.incident_tracker import update_incident_history
 app = Flask(__name__)
 install_security(app)
 app.register_blueprint(live)
+from app.api.telemetry_store import telemetry_ingest
+app.register_blueprint(telemetry_ingest)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data"

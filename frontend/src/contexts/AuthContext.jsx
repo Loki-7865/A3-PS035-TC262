@@ -10,7 +10,7 @@ import {
   reload,
 } from "firebase/auth";
 
-import { auth } from "../services/firebase";
+import { auth } from "../services/firebaseAuth.js";
 
 import { AuthContext } from "./authState";
 

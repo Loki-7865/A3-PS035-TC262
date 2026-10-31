@@ -9,7 +9,7 @@ export default function ProtectedRoute({ children }) {
     return (
       <main className="auth-page">
         <div className="auth-card">
-          <p>Checking your session...</p>
+          <p role="status">Checking your session…</p>
         </div>
       </main>
     );

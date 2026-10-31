@@ -74,21 +74,25 @@ export default function Login() {
             onClick={handleGoogleLogin}
             disabled={loading}
           >
-            <span className="auth-google-icon">G</span>
+            <span className="auth-google-icon" aria-hidden="true">G</span>
             Continue with Google
           </button>
+
+          <p className="auth-progress" role="status">{loading ? "Signing you in…" : ""}</p>
 
           <div className="auth-divider">
             <span>or continue with email</span>
           </div>
 
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleLogin} aria-busy={loading}>
             <label htmlFor="login-email">Email address</label>
             <input
               id="login-email"
               type="email"
               placeholder="you@example.com"
               autoComplete="email"
+              autoCapitalize="none"
+              spellCheck={false}
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               required
