@@ -17,40 +17,70 @@ import { AuthContext } from "./authState";
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [profileRevision, setProfileRevision] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => Boolean(auth && typeof onAuthStateChanged === "function"));
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      (user) => {
-        setCurrentUser(user);
-        setLoading(false);
-      },
-      (error) => {
-        console.error("Authentication state error:", error);
+    if (!auth || typeof onAuthStateChanged !== "function") {
+      return undefined;
+    }
+
+    let unsubscribe = () => {};
+    try {
+      unsubscribe = onAuthStateChanged(
+        auth,
+        (user) => {
+          setCurrentUser(user);
+          setLoading(false);
+        },
+        (error) => {
+          console.error("Authentication state error:", error);
+          setCurrentUser(null);
+          setLoading(false);
+        },
+      );
+    } catch (e) {
+      console.warn("Unable to attach auth state listener:", e);
+      queueMicrotask(() => {
         setCurrentUser(null);
         setLoading(false);
-      },
-    );
+      });
+    }
 
-    return unsubscribe;
+    return () => {
+      if (typeof unsubscribe === "function") {
+        unsubscribe();
+      }
+    };
   }, []);
 
   async function signup(email, password) {
+    if (!auth) {
+      throw new Error("Authentication is not configured in offline/demo mode.");
+    }
     return createUserWithEmailAndPassword(auth, email, password);
   }
 
   async function login(email, password) {
+    if (!auth) {
+      throw new Error("Authentication is not configured in offline/demo mode.");
+    }
     return signInWithEmailAndPassword(auth, email, password);
   }
 
   async function loginWithGoogle() {
+    if (!auth) {
+      throw new Error("Google authentication is not configured in offline/demo mode.");
+    }
     const provider = new GoogleAuthProvider();
 
     return signInWithPopup(auth, provider);
   }
 
   async function logout() {
+    if (!auth) {
+      setCurrentUser(null);
+      return;
+    }
     return signOut(auth);
   }
 
